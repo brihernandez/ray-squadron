@@ -113,11 +113,26 @@ int main ()
 
 		BeginDrawing();
 		{
-			ClearBackground((Color) { 135, 180, 215, 255 });
+			Color sky = {135, 180, 215, 255};
+			Color ground = {0, 117, 44, 255};
+
+			ClearBackground(sky);
+
 			BeginMode3D(camera);
 			{
-				// Draw ground and buildings.
-				DrawGrid(100, 10);
+				// Draw the background on a separate pass so that depth can be disabled.
+				rlDisableDepthMask();
+				DrawPlane(Vector3Zero(), (Vector2) { 10000, 10000 }, ground);
+				DrawGrid(1000, 100);
+
+			} EndMode3D();
+
+			BeginMode3D(camera);
+			{
+				// Depth needs to be reenabled.
+				rlEnableDepthMask();
+
+				// Draw buildings.
 				for (int i = 0; i < MAX_BUILDINGS; i++)
 				{
 					DrawCube(buildings[i], 20, 20, 20, (Color) { 80, 80, 80, 255 });
