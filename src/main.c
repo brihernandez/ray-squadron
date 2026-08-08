@@ -8,45 +8,182 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 */
 
 #include "raylib.h"
+#include "raymath.h"
+#include "rlgl.h"
 
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
+
+#define MAX_BUILDINGS 100
 
 int main ()
 {
 	// Tell the window to use vsync and work on high DPI displays
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
+	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_MSAA_4X_HINT);
 
 	// Create the window and OpenGL context
-	InitWindow(800, 600, "Hello Raylib");
+	const int ScreenWidth = 800;
+	const int ScreenHeight = 600;
+	InitWindow(ScreenWidth, ScreenHeight, "Ray Squadron");
+
+	// =======================================
+	// Scene Init
+	// =======================================
+	Vector3 buildings[MAX_BUILDINGS] = {0};
+	for (int i = 0; i < MAX_BUILDINGS; i++)
+	{
+		buildings[i] = (Vector3){
+			(float)GetRandomValue(-500, 500),
+			10,
+			(float)GetRandomValue(-500, 500)
+		};
+	}
+
+	// =======================================
+	// Physics state
+	// =======================================
+	Vector3 position = {0, 100, 0};
+	Quaternion rotation = QuaternionIdentity();
+	float speed = 80;
+
+	// =======================================
+	// Camera Init
+	// =======================================
+	Camera3D camera = {0};
+	camera.fovy = 50;
+	camera.projection = CAMERA_PERSPECTIVE;
 
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
+	//Texture wabbit = LoadTexture("wabbit_alpha.png");
 
-	// Load a texture from the resources directory
-	Texture wabbit = LoadTexture("wabbit_alpha.png");
-	
-	// game loop
-	while (!WindowShouldClose())		// run the loop until the user presses ESCAPE or presses the Close button on the window
+	// =======================================
+	// Main Loop
+	// =======================================
+
+	while (!WindowShouldClose())
 	{
-		// drawing
+		// =======================================
+		// Update
+		// =======================================
+
+		float deltaTime = GetFrameTime();
+		float pitchSpeed = 1.5 * deltaTime;
+		float rollSpeed = 3 * deltaTime;
+		float yawSpeed = 0.5 * deltaTime;
+
+		// Rotate
+		if (IsKeyDown(KEY_W)) {
+			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, pitchSpeed));
+		}
+		if (IsKeyDown(KEY_S)) {
+			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, -pitchSpeed));
+		}
+		if (IsKeyDown(KEY_A)) {
+			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, -rollSpeed));
+		}
+		if (IsKeyDown(KEY_D)) {
+			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, rollSpeed));
+		}
+		if (IsKeyDown(KEY_Q)) {
+			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, yawSpeed));
+		}
+		if (IsKeyDown(KEY_E)) {
+			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, -yawSpeed));
+		}
+		rotation = QuaternionNormalize(rotation);
+
+		// Translate
+		Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, rotation);
+		Vector3 up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, rotation);
+		position = Vector3Add(position, Vector3Scale(forward, speed * deltaTime));
+
+		// Position chase camera.
+		Vector3 camPos = position;
+		camPos = Vector3Add(camPos, Vector3Scale(forward, -25));
+		camPos = Vector3Add(camPos, Vector3Scale(up, 8));
+
+		// Apply to the raylib camera.
+		camera.position = camPos;
+		camera.target = Vector3Add(position, Vector3Scale(forward, 20));
+		camera.up = up;
+
+		// =======================================
+		// Render
+		// =======================================
+
 		BeginDrawing();
+		{
+			ClearBackground((Color) { 135, 180, 215, 255 });
+			BeginMode3D(camera);
+			{
+				// Draw ground and buildings.
+				DrawGrid(100, 10);
+				for (int i = 0; i < MAX_BUILDINGS; i++)
+				{
+					DrawCube(buildings[i], 20, 20, 20, (Color) { 80, 80, 80, 255 });
+					DrawCubeWires(buildings[i], 20, 20, 20, BLACK);
+				}
 
-		// Setup the back buffer for drawing (clear color and depth buffers)
-		ClearBackground(BLACK);
+				// Draw the plane.
+				Vector3 axis;
+				float angle;
+				QuaternionToAxisAngle(rotation, &axis, &angle);
 
-		// draw some text using the default font
-		DrawText("Hello Raylib", 200,200,20,WHITE);
+				rlPushMatrix();
+				{
+					rlTranslatef(position.x, position.y, position.z);
+					rlRotatef(angle* RAD2DEG, axis.x, axis.y, axis.z);
 
-		// draw our texture to the screen
-		DrawTexture(wabbit, 400, 200, WHITE);
-		
-		// end the frame and get ready for the next one  (display frame, poll input, etc...)
-		EndDrawing();
+					// Now that the matrix has been setup, draw the plane at the "origin".
+					// Fuselage, Wings, Tail
+					DrawCylinderEx(
+						(Vector3) { 0.0f, 0.0f, -4.0f },
+						(Vector3) { 0.0f, 0.0f, 6.0f },
+						1.2f, 0.2f, 6,
+						(Color) { 55, 75, 65, 255 });
+					DrawCube(
+						(Vector3) { 0.0f, 0.0f, -1.0f },
+						16.0f, 0.2f, 4.0f,
+						(Color) { 50, 68, 58, 255 });
+					DrawCube(
+						(Vector3) { 0.0f, 1.5f, -3.0f },
+						0.2f, 3.0f, 2.0f,
+						(Color) { 45, 60, 50, 255 });
+
+				} rlPopMatrix();
+
+			} EndMode3D();
+
+			// HUD
+			Vector3 cameraForward = Vector3Subtract(camera.target, camera.position);
+			for (int i = 0; i < MAX_BUILDINGS; i++)
+			{
+				Vector3 cameraToBuilding = Vector3Subtract(buildings[i], camera.position);
+				if (Vector3DotProduct(cameraForward, cameraToBuilding) < 0)
+					continue;
+
+				Vector2 buildingScreenPos = GetWorldToScreen(buildings[i], camera);
+				DrawText(TextFormat("%i", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
+			}
+
+			DrawText(TextFormat("SPEED: %i KTS", (int)speed), 40, 40, 20, GREEN);
+			DrawText(TextFormat("ALTITUDE: %i FT", (int)position.y * 10), 40, 70, 20, GREEN);
+
+			// Crosshair reticle?
+			DrawCircleLines(ScreenWidth / 2, ScreenHeight / 2, 50, GREEN);
+			DrawLine(
+				ScreenWidth / 2 - 100, ScreenHeight / 2,
+				ScreenWidth / 2 + 100, ScreenHeight / 2,
+				GREEN);
+
+			DrawFPS(10, 10);
+
+		} EndDrawing();
 	}
 
 	// cleanup
 	// unload our texture so it can be cleaned up
-	UnloadTexture(wabbit);
+	//UnloadTexture(wabbit);
 
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();
