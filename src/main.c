@@ -225,7 +225,7 @@ int main()
 
 				// Update weapons (firing)
 				timeSinceLastShot += deltaTime;
-				if (IsKeyDown(KEY_LEFT_CONTROL) && timeSinceLastShot >= fireDelay)
+				if ((IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0)) && timeSinceLastShot >= fireDelay)
 				{
 					// Find first inactive bullet and use it to spawn.
 					// This whole thing can be done much better.
