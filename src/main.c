@@ -14,6 +14,15 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 
 #define MAX_BUILDINGS 100
+#define MAX_BULLETS 100
+#define BULLET_LIFETIME 2.5
+
+typedef struct Projectile {
+	Vector3 position;
+	Vector3 velocity;
+	float lifeTime;
+	bool active;
+} Projectile;
 
 int main ()
 {
@@ -37,6 +46,14 @@ int main ()
 			(float)GetRandomValue(-500, 500)
 		};
 	}
+
+	// =======================================
+	// Weapons init
+	// =======================================
+	Projectile bullets[MAX_BULLETS] = {0};
+	float fireDelay = 0.08f;
+	float timeSinceLastShot = 0;
+	float muzzleVelocity = 400;
 
 	// =======================================
 	// Physics state
@@ -107,6 +124,38 @@ int main ()
 		camera.target = Vector3Add(position, Vector3Scale(forward, 20));
 		camera.up = up;
 
+		// Update weapons (firing)
+		timeSinceLastShot += deltaTime;
+		if (IsKeyDown(KEY_LEFT_CONTROL) && timeSinceLastShot >= fireDelay)
+		{
+			// Find first inactive bullet and use it to spawn.
+			// This whole thing can be done much better.
+			for (int i = 0; i < MAX_BULLETS; i++)
+			{
+				if (!bullets[i].active)
+				{
+					bullets[i].active = true;
+					bullets[i].lifeTime = BULLET_LIFETIME;
+					bullets[i].position = Vector3Add(position, Vector3Scale(forward, 5));
+					bullets[i].velocity = Vector3Scale(forward, speed + muzzleVelocity);
+					timeSinceLastShot = 0;
+					break;
+				}
+			}
+		}
+
+		// Update weapons (bullet movement)
+		for (int i = 0; i < MAX_BULLETS; i++)
+		{
+			if (bullets[i].active)
+			{
+				Vector3 bulletDelta = Vector3Scale(bullets[i].velocity, deltaTime);
+				bullets[i].position = Vector3Add(bullets[i].position, bulletDelta);
+				bullets[i].lifeTime -= deltaTime;
+				bullets[i].active = bullets[i].lifeTime > 0 && bullets[i].position.y > 0;
+			}
+		}
+
 		// =======================================
 		// Render
 		// =======================================
@@ -137,6 +186,16 @@ int main ()
 				{
 					DrawCube(buildings[i], 20, 20, 20, (Color) { 80, 80, 80, 255 });
 					DrawCubeWires(buildings[i], 20, 20, 20, BLACK);
+
+				// Draw bullets.
+				for (int i = 0; i < MAX_BULLETS; i++)
+				{
+					if (!bullets[i].active)
+						continue;
+					DrawCube(
+						bullets[i].position,
+						1, 1, 1,
+						YELLOW);
 				}
 
 				// Draw the plane.
