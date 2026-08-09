@@ -15,7 +15,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #define MAX_BUILDINGS 15
 #define MAX_BULLETS 100
-#define BULLET_LIFETIME 2.5
+#define BULLET_LIFETIME 1
 
 typedef enum GameScreen {
 	TITLE,
@@ -38,6 +38,9 @@ typedef struct Building {
 
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
+float SmoothDamp(float from, float to, float speed, float dt);
+Vector3 Vector3SmoothDamp(Vector3 from, Vector3 to, float speed, float dt);
+Quaternion QuaternionSmoothDamp(Quaternion from, Quaternion to, float speed, float dt);
 
 int main()
 {
@@ -73,7 +76,7 @@ int main()
 	Projectile bullets[MAX_BULLETS] = {0};
 	float fireDelay = 0.08f;
 	float timeSinceLastShot = 0;
-	float muzzleVelocity = 400;
+	float muzzleVelocity = 800;
 
 	// =======================================
 	// Physics state
@@ -83,6 +86,7 @@ int main()
 
 	Vector3 position = startPosition;
 	Quaternion rotation = QuaternionIdentity();
+	Vector3 angularVelocity = Vector3Zero();
 	float speed = startSpeed;
 
 	// =======================================
@@ -115,11 +119,12 @@ int main()
 				{
 					position = startPosition;
 					rotation = QuaternionIdentity();
+					angularVelocity = Vector3Zero();
 					speed = startSpeed;
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
-						const int size = 10;
+						const float size = 10;
 						buildings[i].position = (Vector3){
 							(float)GetRandomValue(-500, 500),
 							size,
@@ -151,9 +156,9 @@ int main()
 			case GAMEPLAY:
 			{
 				float deltaTime = GetFrameTime();
-				float pitchSpeed = 1.5 * deltaTime;
-				float rollSpeed = 3 * deltaTime;
-				float yawSpeed = 3 * deltaTime;
+				float pitchSpeed = 1.5;
+				float rollSpeed = 3;
+				float yawSpeed = 1.5;
 
 				// Rotate
 				float pitch = 0;
@@ -167,17 +172,17 @@ int main()
 				}
 				if (IsKeyDown(KEY_A)) {
 					roll -= 0.2f;
-					yaw += 0.5f;
+					yaw += 1;
 				}
 				if (IsKeyDown(KEY_D)) {
 					roll += 0.2f;
-					yaw -= 0.5f;
-				}
-				if (IsKeyDown(KEY_Q)) {
 					yaw -= 1;
 				}
+				if (IsKeyDown(KEY_Q)) {
+					roll -= 1;
+				}
 				if (IsKeyDown(KEY_E)) {
-					yaw += 1;
+					roll += 1;
 				}
 
 				// Autolevel
@@ -190,9 +195,14 @@ int main()
 				yaw = Clamp(yaw, -1, 1);
 				roll = Clamp(roll, -1, 1);
 
-				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, pitch * pitchSpeed));
-				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, yaw * yawSpeed));
-				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, roll * rollSpeed));
+				float smoothSpeed = 5;
+				angularVelocity.x = SmoothDamp(angularVelocity.x, pitch * pitchSpeed, smoothSpeed, deltaTime);
+				angularVelocity.y = SmoothDamp(angularVelocity.y, yaw * yawSpeed, smoothSpeed, deltaTime);
+				angularVelocity.z = SmoothDamp(angularVelocity.z, roll * rollSpeed, smoothSpeed, deltaTime);
+
+				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, angularVelocity.x * deltaTime));
+				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, angularVelocity.y * deltaTime));
+				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, angularVelocity.z * deltaTime));
 				rotation = QuaternionNormalize(rotation);
 
 				// Translate
@@ -202,12 +212,12 @@ int main()
 
 				// Position chase camera.
 				Vector3 camPos = position;
-				camPos = Vector3Add(camPos, Vector3Scale(forward, -25));
-				camPos = Vector3Add(camPos, Vector3Scale(up, 8));
+				camPos = Vector3Add(camPos, Vector3Scale(forward, -40));
+				camPos = Vector3Add(camPos, Vector3Scale(up, 10));
 
 				// Apply to the raylib camera.
-				camera.position = camPos;
-				camera.target = Vector3Add(position, Vector3Scale(forward, 20));
+				camera.position = Vector3SmoothDamp(camera.position, camPos, 10, deltaTime);
+				camera.target = Vector3Add(position, Vector3Scale(forward, 225));
 				camera.up = up;
 
 				// Update weapons (firing)
@@ -438,4 +448,19 @@ void DrawTextCentered(const char* message, int x, int y, int size, Color color)
 	x -= MeasureText(message, size) / 2;
 	y -= size / 2;
 	DrawText(message, x, y, size, color);
+}
+
+float SmoothDamp(float from, float to, float speed, float dt)
+{
+	return Lerp(from, to, 1 - expf(-speed * dt));
+}
+
+Vector3 Vector3SmoothDamp(Vector3 from, Vector3 to, float speed, float dt)
+{
+	return Vector3Lerp(from, to, 1 - expf(-speed * dt));
+}
+
+Quaternion QuaternionSmoothDamp(Quaternion from, Quaternion to, float speed, float dt)
+{
+	return QuaternionSlerp(from, to, 1 - expf(-speed * dt));
 }
