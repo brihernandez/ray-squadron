@@ -292,8 +292,8 @@ int main()
 			if (currentScreen == TITLE)
 			{
 				ClearBackground((Color) { 16, 32, 64, 255 });
-				DrawTextCentered("Destroy all buildings!", ScreenWidth / 2, ScreenHeight / 2, 60, ORANGE);
-				DrawTextCentered("Press [ENTER] to start.", ScreenWidth / 2, ScreenHeight / 2 + 80, 20, ORANGE);
+				DrawTextCentered("Destroy all targets!", ScreenWidth / 2, ScreenHeight / 2 - 30, 60, ORANGE);
+				DrawTextCentered("Press [ENTER] to start.", ScreenWidth / 2, ScreenHeight / 2 + 30, 20, ORANGE);
 			}
 			else
 			{
@@ -368,22 +368,20 @@ int main()
 				if (currentScreen == ENDING)
 				{
 					// Win message on completion
-					DrawRectangle(0, 0, ScreenWidth, ScreenHeight, Fade(BLACK, 0.5));
-					DrawTextCentered("YOU BEAT THE GAME!", ScreenWidth / 2, ScreenHeight / 2, 60, ORANGE);
-					DrawTextCentered("Press [ENTER] to play again.", ScreenWidth / 2, ScreenHeight / 2 + 80, 20, ORANGE);
+					DrawRectangle(0, 0, ScreenWidth, ScreenHeight, Fade(BLACK, 0.8));
+					DrawTextCentered("YOU BEAT THE GAME!", ScreenWidth / 2, ScreenHeight / 2 - 30, 60, ORANGE);
+					DrawTextCentered("Press [ENTER] to play again.", ScreenWidth / 2, ScreenHeight / 2 + 30, 20, ORANGE);
 				}
 				else
 				{
-					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", targetsDestroyed), ScreenWidth / 2, 60, 40, ORANGE);
+					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", targetsDestroyed), ScreenWidth / 2, 100, 40, ORANGE);
 				}
 
+				BeginBlendMode(BLEND_ADDITIVE);
+				{
+					DrawText(TextFormat("%d", GetFPS()), 10, 10, 10, GREEN);
+				} EndBlendMode();
 			}
-
-			BeginBlendMode(BLEND_ADDITIVE);
-			{
-				DrawFPS(10, 10);
-			} EndBlendMode();
-
 		} EndDrawing();
 	}
 
