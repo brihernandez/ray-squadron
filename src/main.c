@@ -42,6 +42,7 @@ void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 float SmoothDamp(float from, float to, float speed, float dt);
 Vector3 Vector3SmoothDamp(Vector3 from, Vector3 to, float speed, float dt);
 Quaternion QuaternionSmoothDamp(Quaternion from, Quaternion to, float speed, float dt);
+void DrawGridColored(int slices, float spacing, Color color);
 
 int main()
 {
@@ -303,7 +304,7 @@ int main()
 					// Draw the background on a separate pass so that depth can be disabled.
 					rlDisableDepthMask();
 					DrawPlane(Vector3Zero(), (Vector2) { 10000, 10000 }, ground);
-					DrawGrid(1000, 100);
+					DrawGridColored(100, 100, ColorLerp(ground, WHITE, 0.3));
 
 				} EndMode3D();
 
@@ -463,4 +464,23 @@ Vector3 Vector3SmoothDamp(Vector3 from, Vector3 to, float speed, float dt)
 Quaternion QuaternionSmoothDamp(Quaternion from, Quaternion to, float speed, float dt)
 {
 	return QuaternionSlerp(from, to, 1 - expf(-speed * dt));
+}
+
+void DrawGridColored(int slices, float spacing, Color color)
+{
+	int halfSlices = slices / 2;
+	Vector4 c = ColorNormalize(color);
+
+	rlBegin(RL_LINES);
+	for (int i = -halfSlices; i <= halfSlices; i++)
+	{
+		rlColor3f(c.x, c.y, c.z);
+
+		rlVertex3f((float)i * spacing, 0.0f, (float)-halfSlices * spacing);
+		rlVertex3f((float)i * spacing, 0.0f, (float)halfSlices * spacing);
+
+		rlVertex3f((float)-halfSlices * spacing, 0.0f, (float)i * spacing);
+		rlVertex3f((float)halfSlices * spacing, 0.0f, (float)i * spacing);
+	}
+	rlEnd();
 }
