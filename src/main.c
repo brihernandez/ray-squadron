@@ -89,30 +89,20 @@ int main ()
 		float yawSpeed = 0.5 * deltaTime;
 
 		// Rotate
-		if (IsKeyDown(KEY_W)) {
-			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, pitchSpeed));
-		}
-		if (IsKeyDown(KEY_S)) {
-			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, -pitchSpeed));
-		}
-		if (IsKeyDown(KEY_A)) {
-			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, -rollSpeed));
-		}
-		if (IsKeyDown(KEY_D)) {
-			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, rollSpeed));
-		}
-		if (IsKeyDown(KEY_Q)) {
-			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, yawSpeed));
-		}
-		if (IsKeyDown(KEY_E)) {
-			rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, -yawSpeed));
-		}
+		if (IsKeyDown(KEY_W)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, pitchSpeed));
+		if (IsKeyDown(KEY_S)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, -pitchSpeed));
+		if (IsKeyDown(KEY_A)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, -rollSpeed));
+		if (IsKeyDown(KEY_D)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, rollSpeed));
+		if (IsKeyDown(KEY_Q)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, yawSpeed));
+		if (IsKeyDown(KEY_E)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, -yawSpeed));
 		rotation = QuaternionNormalize(rotation);
 
 		// Translate
 		Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, rotation);
 		Vector3 up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, rotation);
 		position = Vector3Add(position, Vector3Scale(forward, speed * deltaTime));
+		if (position.y < 2)
+			position.y = 2;
 
 		// Position chase camera.
 		Vector3 camPos = position;
