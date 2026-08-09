@@ -48,6 +48,19 @@ int main()
 	const int ScreenWidth = 800;
 	const int ScreenHeight = 600;
 	InitWindow(ScreenWidth, ScreenHeight, "Ray Squadron");
+	InitAudioDevice();
+
+	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
+	SearchAndSetResourceDir("resources");
+
+	Music bgm = LoadMusicStream("realtrees.ogg");
+	bgm.looping = true;
+	PlayMusicStream(bgm);
+
+	Sound sfx_confirm = LoadSound("confirm.ogg");
+	Sound sfx_shoot = LoadSound("shoot.ogg");
+	Sound sfx_explode = LoadSound("explode.ogg");
+	Sound sfx_win = LoadSound("win.ogg");
 
 	// =======================================
 	// Buildings init
@@ -79,10 +92,6 @@ int main()
 	camera.fovy = 50;
 	camera.projection = CAMERA_PERSPECTIVE;
 
-	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
-	SearchAndSetResourceDir("resources");
-	//Texture wabbit = LoadTexture("wabbit_alpha.png");
-
 	// =======================================
 	// Main Loop
 	// =======================================
@@ -95,6 +104,8 @@ int main()
 		// =======================================
 		// Update
 		// =======================================
+
+		UpdateMusicStream(bgm);
 
 		switch (currentScreen) {
 			case TITLE:
@@ -126,8 +137,14 @@ int main()
 						bullets[i].active = false;
 					}
 
-					targetsDestroyed = 0;
+					// Use this to tell if coming from the main menu or not.
+					if (targetsDestroyed > 0)
+						PlayMusicStream(bgm);
+
 					currentScreen = GAMEPLAY;
+					targetsDestroyed = 0;
+
+					PlaySound(sfx_confirm);
 				}
 				break;
 			}
@@ -208,6 +225,7 @@ int main()
 							bullets[i].position = Vector3Add(position, Vector3Scale(forward, 5));
 							bullets[i].velocity = Vector3Scale(forward, speed + muzzleVelocity);
 							timeSinceLastShot = 0;
+							PlaySound(sfx_shoot);
 							break;
 						}
 					}
@@ -233,6 +251,7 @@ int main()
 								buildings[b].active = false;
 								bullets[i].active = false;
 								targetsDestroyed += 1;
+								PlaySound(sfx_explode);
 								break;
 							}
 						}
@@ -243,6 +262,8 @@ int main()
 				if (targetsDestroyed >= MAX_BUILDINGS)
 				{
 					currentScreen = ENDING;
+					StopMusicStream(bgm);
+					PlaySound(sfx_win);
 				}
 
 				break;
@@ -358,10 +379,6 @@ int main()
 					DrawText(TextFormat("%d", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
 				}
 
-				//DrawText(TextFormat("SPEED: %d KTS", (int)speed), 40, 40, 20, GREEN);
-				//DrawText(TextFormat("ALTITUDE: %d FT", (int)position.y * 10), 40, 70, 20, GREEN);
-				DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", targetsDestroyed), ScreenWidth / 2, 60, 40, ORANGE);
-
 				// Crosshairs
 				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, rotation);
 				Vector3 xhairPos = Vector3Add(position, Vector3Scale(forward, 75));
@@ -371,13 +388,18 @@ int main()
 				xhairScreenPos = GetWorldToScreen(xhairPos, camera);
 				DrawCrosshair(xhairScreenPos, 13);
 
-				// Win message on completion
 				if (currentScreen == ENDING)
 				{
+					// Win message on completion
 					DrawRectangle(0, 0, ScreenWidth, ScreenHeight, Fade(BLACK, 0.5));
 					DrawTextCentered("YOU BEAT THE GAME!", ScreenWidth / 2, ScreenHeight / 2, 60, ORANGE);
 					DrawTextCentered("Press [ENTER] to play again.", ScreenWidth / 2, ScreenHeight / 2 + 80, 20, ORANGE);
 				}
+				else
+				{
+					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", targetsDestroyed), ScreenWidth / 2, 60, 40, ORANGE);
+				}
+
 			}
 
 			BeginBlendMode(BLEND_ADDITIVE);
@@ -392,7 +414,7 @@ int main()
 	// unload our texture so it can be cleaned up
 	//UnloadTexture(wabbit);
 
-	// destroy the window and cleanup the OpenGL context
+	CloseAudioDevice();
 	CloseWindow();
 	return 0;
 }
