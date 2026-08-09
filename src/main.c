@@ -67,6 +67,8 @@ int main()
 	Sound sfx_explode = LoadSound("explode.ogg");
 	Sound sfx_win = LoadSound("win.ogg");
 
+	Model mdl_ship = LoadModel("ship.glb");
+
 	// =======================================
 	// Buildings init
 	// =======================================
@@ -330,51 +332,15 @@ int main()
 							continue;
 						DrawCube(
 							bullets[i].position,
-							1, 1, 1,
+							1.5, 1.5, 1.5,
 							YELLOW);
 					}
 
 					// Draw the plane.
-					Vector3 axis;
-					float angle;
-					QuaternionToAxisAngle(rotation, &axis, &angle);
-
-					rlPushMatrix();
-					{
-						rlTranslatef(position.x, position.y, position.z);
-						rlRotatef(angle * RAD2DEG, axis.x, axis.y, axis.z);
-
-						// Now that the matrix has been setup, draw the plane at the "origin".
-						// Fuselage, Wings, Tail
-						DrawCylinderEx(
-							(Vector3) {
-							0.0f, 0.0f, -4.0f
-						},
-							(Vector3) {
-							0.0f, 0.0f, 6.0f
-						},
-							1.2f, 0.2f, 6,
-							(Color) {
-							55, 75, 65, 255
-						});
-						DrawCube(
-							(Vector3) {
-							0.0f, 0.0f, -1.0f
-						},
-							16.0f, 0.2f, 4.0f,
-							(Color) {
-							50, 68, 58, 255
-						});
-						DrawCube(
-							(Vector3) {
-							0.0f, 1.5f, -3.0f
-						},
-							0.2f, 3.0f, 2.0f,
-							(Color) {
-							45, 60, 50, 255
-						});
-
-					} rlPopMatrix();
+					Matrix shipTransform = MatrixTranslate(position.x, position.y, position.z);
+					shipTransform = MatrixMultiply(QuaternionToMatrix(rotation), shipTransform);
+					mdl_ship.transform = shipTransform;
+					DrawModel(mdl_ship, Vector3Zero(), 1, WHITE);
 
 				} EndMode3D();
 
