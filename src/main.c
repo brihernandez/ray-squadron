@@ -13,9 +13,15 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 
-#define MAX_BUILDINGS 100
+#define MAX_BUILDINGS 15
 #define MAX_BULLETS 100
 #define BULLET_LIFETIME 2.5
+
+typedef enum GameScreen {
+	TITLE,
+	GAMEPLAY,
+	ENDING,
+} GameScreen;
 
 typedef struct Projectile {
 	Vector3 position;
@@ -31,8 +37,9 @@ typedef struct Building {
 } Building;
 
 void DrawCrosshair(Vector2 screenPos, float radius);
+void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 
-int main ()
+int main()
 {
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_MSAA_4X_HINT);
@@ -46,20 +53,6 @@ int main ()
 	// Buildings init
 	// =======================================
 	Building buildings[MAX_BUILDINGS] = {0};
-	for (int i = 0; i < MAX_BUILDINGS; i++)
-	{
-		const int size = 10;
-		buildings[i].position = (Vector3){
-			(float)GetRandomValue(-500, 500),
-			size,
-			(float)GetRandomValue(-500, 500)
-		};
-		buildings[i].active = true;
-		buildings[i].bounds = (BoundingBox){
-			.min = (Vector3) {buildings[i].position.x - size, buildings[i].position.y - size, buildings[i].position.z - size},
-			.max = (Vector3) {buildings[i].position.x + size, buildings[i].position.y + size, buildings[i].position.z + size},
-		};
-	}
 
 	// =======================================
 	// Weapons init
@@ -72,9 +65,12 @@ int main ()
 	// =======================================
 	// Physics state
 	// =======================================
-	Vector3 position = {0, 100, 0};
+	const Vector3 startPosition = {0, 100, 0};
+	const float startSpeed = 80;
+
+	Vector3 position = startPosition;
 	Quaternion rotation = QuaternionIdentity();
-	float speed = 80;
+	float speed = startSpeed;
 
 	// =======================================
 	// Camera Init
@@ -91,7 +87,8 @@ int main ()
 	// Main Loop
 	// =======================================
 
-	int score = 0;
+	GameScreen currentScreen = TITLE;
+	int targetsDestroyed = 0;
 
 	while (!WindowShouldClose())
 	{
@@ -99,80 +96,156 @@ int main ()
 		// Update
 		// =======================================
 
-		float deltaTime = GetFrameTime();
-		float pitchSpeed = 1.5 * deltaTime;
-		float rollSpeed = 3 * deltaTime;
-		float yawSpeed = 0.5 * deltaTime;
-
-		// Rotate
-		if (IsKeyDown(KEY_W)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, pitchSpeed));
-		if (IsKeyDown(KEY_S)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, -pitchSpeed));
-		if (IsKeyDown(KEY_A)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, -rollSpeed));
-		if (IsKeyDown(KEY_D)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, rollSpeed));
-		if (IsKeyDown(KEY_Q)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, yawSpeed));
-		if (IsKeyDown(KEY_E)) rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, -yawSpeed));
-		rotation = QuaternionNormalize(rotation);
-
-		// Translate
-		Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, rotation);
-		Vector3 up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, rotation);
-		position = Vector3Add(position, Vector3Scale(forward, speed * deltaTime));
-		if (position.y < 2)
-			position.y = 2;
-
-		// Position chase camera.
-		Vector3 camPos = position;
-		camPos = Vector3Add(camPos, Vector3Scale(forward, -25));
-		camPos = Vector3Add(camPos, Vector3Scale(up, 8));
-
-		// Apply to the raylib camera.
-		camera.position = camPos;
-		camera.target = Vector3Add(position, Vector3Scale(forward, 20));
-		camera.up = up;
-
-		// Update weapons (firing)
-		timeSinceLastShot += deltaTime;
-		if (IsKeyDown(KEY_LEFT_CONTROL) && timeSinceLastShot >= fireDelay)
-		{
-			// Find first inactive bullet and use it to spawn.
-			// This whole thing can be done much better.
-			for (int i = 0; i < MAX_BULLETS; i++)
+		switch (currentScreen) {
+			case TITLE:
+			case ENDING:
 			{
-				if (!bullets[i].active)
+				if (IsKeyPressed(KEY_ENTER))
 				{
-					bullets[i].active = true;
-					bullets[i].lifeTime = BULLET_LIFETIME;
-					bullets[i].position = Vector3Add(position, Vector3Scale(forward, 5));
-					bullets[i].velocity = Vector3Scale(forward, speed + muzzleVelocity);
-					timeSinceLastShot = 0;
-					break;
-				}
-			}
-		}
+					position = startPosition;
+					rotation = QuaternionIdentity();
+					speed = startSpeed;
 
-		// Update weapons (bullet movement)
-		for (int i = 0; i < MAX_BULLETS; i++)
-		{
-			if (bullets[i].active)
-			{
-				Vector3 bulletDelta = Vector3Scale(bullets[i].velocity, deltaTime);
-				bullets[i].position = Vector3Add(bullets[i].position, bulletDelta);
-				bullets[i].lifeTime -= deltaTime;
-				bullets[i].active = bullets[i].lifeTime > 0 && bullets[i].position.y > 0;
-
-				for (int b = 0; b < MAX_BUILDINGS; b++)
-				{
-					if (!buildings[b].active)
-						continue;
-
-					if (CheckCollisionBoxSphere(buildings[b].bounds, bullets[i].position, 1))
+					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
-						buildings[b].active = false;
+						const int size = 10;
+						buildings[i].position = (Vector3){
+							(float)GetRandomValue(-500, 500),
+							size,
+							(float)GetRandomValue(-500, 500)
+						};
+						buildings[i].active = true;
+						buildings[i].bounds = (BoundingBox){
+							.min = (Vector3) {buildings[i].position.x - size, buildings[i].position.y - size, buildings[i].position.z - size},
+							.max = (Vector3) {buildings[i].position.x + size, buildings[i].position.y + size, buildings[i].position.z + size},
+						};
+					}
+
+					for (int i = 0; i < MAX_BULLETS; i++)
+					{
 						bullets[i].active = false;
-						score += 1;
-						break;
+					}
+
+					targetsDestroyed = 0;
+					currentScreen = GAMEPLAY;
+				}
+				break;
+			}
+			case GAMEPLAY:
+			{
+				float deltaTime = GetFrameTime();
+				float pitchSpeed = 1.5 * deltaTime;
+				float rollSpeed = 3 * deltaTime;
+				float yawSpeed = 3 * deltaTime;
+
+				// Rotate
+				float pitch = 0;
+				float yaw = 0;
+				float roll = 0;
+				if (IsKeyDown(KEY_W)) {
+					pitch += 1;
+				}
+				if (IsKeyDown(KEY_S)) {
+					pitch -= 1;
+				}
+				if (IsKeyDown(KEY_A)) {
+					roll -= 0.2f;
+					yaw += 0.5f;
+				}
+				if (IsKeyDown(KEY_D)) {
+					roll += 0.2f;
+					yaw -= 0.5f;
+				}
+				if (IsKeyDown(KEY_Q)) {
+					yaw -= 1;
+				}
+				if (IsKeyDown(KEY_E)) {
+					yaw += 1;
+				}
+
+				// Autolevel
+				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, rotation);
+				Vector3 up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, rotation);
+				Vector3 right = Vector3RotateByQuaternion((Vector3){1, 0, 0}, rotation);
+				roll -= right.y / 2;
+
+				pitch = Clamp(pitch, -1, 1);
+				yaw = Clamp(yaw, -1, 1);
+				roll = Clamp(roll, -1, 1);
+
+				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, pitch * pitchSpeed));
+				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, yaw * yawSpeed));
+				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, roll * rollSpeed));
+				rotation = QuaternionNormalize(rotation);
+
+				// Translate
+				position = Vector3Add(position, Vector3Scale(forward, speed * deltaTime));
+				if (position.y < 2)
+					position.y = 2;
+
+				// Position chase camera.
+				Vector3 camPos = position;
+				camPos = Vector3Add(camPos, Vector3Scale(forward, -25));
+				camPos = Vector3Add(camPos, Vector3Scale(up, 8));
+
+				// Apply to the raylib camera.
+				camera.position = camPos;
+				camera.target = Vector3Add(position, Vector3Scale(forward, 20));
+				camera.up = up;
+
+				// Update weapons (firing)
+				timeSinceLastShot += deltaTime;
+				if (IsKeyDown(KEY_LEFT_CONTROL) && timeSinceLastShot >= fireDelay)
+				{
+					// Find first inactive bullet and use it to spawn.
+					// This whole thing can be done much better.
+					for (int i = 0; i < MAX_BULLETS; i++)
+					{
+						if (!bullets[i].active)
+						{
+							bullets[i].active = true;
+							bullets[i].lifeTime = BULLET_LIFETIME;
+							bullets[i].position = Vector3Add(position, Vector3Scale(forward, 5));
+							bullets[i].velocity = Vector3Scale(forward, speed + muzzleVelocity);
+							timeSinceLastShot = 0;
+							break;
+						}
 					}
 				}
+
+				// Update weapons (bullet movement)
+				for (int i = 0; i < MAX_BULLETS; i++)
+				{
+					if (bullets[i].active)
+					{
+						Vector3 bulletDelta = Vector3Scale(bullets[i].velocity, deltaTime);
+						bullets[i].position = Vector3Add(bullets[i].position, bulletDelta);
+						bullets[i].lifeTime -= deltaTime;
+						bullets[i].active = bullets[i].lifeTime > 0 && bullets[i].position.y > 0;
+
+						for (int b = 0; b < MAX_BUILDINGS; b++)
+						{
+							if (!buildings[b].active)
+								continue;
+
+							if (CheckCollisionBoxSphere(buildings[b].bounds, bullets[i].position, 1))
+							{
+								buildings[b].active = false;
+								bullets[i].active = false;
+								targetsDestroyed += 1;
+								break;
+							}
+						}
+					}
+				}
+
+				// Check win condition.
+				if (targetsDestroyed >= MAX_BUILDINGS)
+				{
+					currentScreen = ENDING;
+				}
+
+				break;
 			}
 		}
 
@@ -182,101 +255,135 @@ int main ()
 
 		BeginDrawing();
 		{
-			Color sky = {135, 180, 215, 255};
-			Color ground = {0, 117, 44, 255};
-
-			ClearBackground(sky);
-
-			BeginMode3D(camera);
+			if (currentScreen == TITLE)
 			{
-				// Draw the background on a separate pass so that depth can be disabled.
-				rlDisableDepthMask();
-				DrawPlane(Vector3Zero(), (Vector2) { 10000, 10000 }, ground);
-				DrawGrid(1000, 100);
-
-			} EndMode3D();
-
-			BeginMode3D(camera);
+				ClearBackground((Color) { 16, 32, 64, 255 });
+				DrawTextCentered("Destroy all buildings!", ScreenWidth / 2, ScreenHeight / 2, 60, ORANGE);
+				DrawTextCentered("Press [ENTER] to start.", ScreenWidth / 2, ScreenHeight / 2 + 80, 20, ORANGE);
+			}
+			else
 			{
-				// Depth needs to be reenabled.
-				rlEnableDepthMask();
+				Color sky = {135, 180, 215, 255};
+				Color ground = {0, 117, 44, 255};
+				ClearBackground(sky);
 
-				// Draw buildings.
+				BeginMode3D(camera);
+				{
+					// Draw the background on a separate pass so that depth can be disabled.
+					rlDisableDepthMask();
+					DrawPlane(Vector3Zero(), (Vector2) { 10000, 10000 }, ground);
+					DrawGrid(1000, 100);
+
+				} EndMode3D();
+
+				BeginMode3D(camera);
+				{
+					// Depth needs to be reenabled.
+					rlEnableDepthMask();
+
+					// Draw buildings.
+					for (int i = 0; i < MAX_BUILDINGS; i++)
+					{
+						if (!buildings[i].active)
+							continue;
+
+						DrawCube(buildings[i].position, 20, 20, 20, (Color) { 80, 80, 80, 255 });
+						DrawCubeWires(buildings[i].position, 20, 20, 20, BLACK);
+					}
+
+					// Draw bullets.
+					for (int i = 0; i < MAX_BULLETS; i++)
+					{
+						if (!bullets[i].active)
+							continue;
+						DrawCube(
+							bullets[i].position,
+							1, 1, 1,
+							YELLOW);
+					}
+
+					// Draw the plane.
+					Vector3 axis;
+					float angle;
+					QuaternionToAxisAngle(rotation, &axis, &angle);
+
+					rlPushMatrix();
+					{
+						rlTranslatef(position.x, position.y, position.z);
+						rlRotatef(angle * RAD2DEG, axis.x, axis.y, axis.z);
+
+						// Now that the matrix has been setup, draw the plane at the "origin".
+						// Fuselage, Wings, Tail
+						DrawCylinderEx(
+							(Vector3) {
+							0.0f, 0.0f, -4.0f
+						},
+							(Vector3) {
+							0.0f, 0.0f, 6.0f
+						},
+							1.2f, 0.2f, 6,
+							(Color) {
+							55, 75, 65, 255
+						});
+						DrawCube(
+							(Vector3) {
+							0.0f, 0.0f, -1.0f
+						},
+							16.0f, 0.2f, 4.0f,
+							(Color) {
+							50, 68, 58, 255
+						});
+						DrawCube(
+							(Vector3) {
+							0.0f, 1.5f, -3.0f
+						},
+							0.2f, 3.0f, 2.0f,
+							(Color) {
+							45, 60, 50, 255
+						});
+
+					} rlPopMatrix();
+
+				} EndMode3D();
+
+				// HUD
+				Vector3 cameraForward = Vector3Subtract(camera.target, camera.position);
 				for (int i = 0; i < MAX_BUILDINGS; i++)
 				{
-					if (!buildings[i].active)
+					Vector3 cameraToBuilding = Vector3Subtract(buildings[i].position, camera.position);
+					if (Vector3DotProduct(cameraForward, cameraToBuilding) < 0)
 						continue;
 
-					DrawCube(buildings[i].position, 20, 20, 20, (Color) { 80, 80, 80, 255 });
-					DrawCubeWires(buildings[i].position, 20, 20, 20, BLACK);
+					Vector2 buildingScreenPos = GetWorldToScreen(buildings[i].position, camera);
+					DrawText(TextFormat("%d", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
 				}
 
-				// Draw bullets.
-				for (int i = 0; i < MAX_BULLETS; i++)
+				//DrawText(TextFormat("SPEED: %d KTS", (int)speed), 40, 40, 20, GREEN);
+				//DrawText(TextFormat("ALTITUDE: %d FT", (int)position.y * 10), 40, 70, 20, GREEN);
+				DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", targetsDestroyed), ScreenWidth / 2, 60, 40, ORANGE);
+
+				// Crosshairs
+				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, rotation);
+				Vector3 xhairPos = Vector3Add(position, Vector3Scale(forward, 75));
+				Vector2 xhairScreenPos = GetWorldToScreen(xhairPos, camera);
+				DrawCrosshair(xhairScreenPos, 40);
+				xhairPos = Vector3Add(position, Vector3Scale(forward, 225));
+				xhairScreenPos = GetWorldToScreen(xhairPos, camera);
+				DrawCrosshair(xhairScreenPos, 13);
+
+				// Win message on completion
+				if (currentScreen == ENDING)
 				{
-					if (!bullets[i].active)
-						continue;
-					DrawCube(
-						bullets[i].position,
-						1, 1, 1,
-						YELLOW);
+					DrawRectangle(0, 0, ScreenWidth, ScreenHeight, Fade(BLACK, 0.5));
+					DrawTextCentered("YOU BEAT THE GAME!", ScreenWidth / 2, ScreenHeight / 2, 60, ORANGE);
+					DrawTextCentered("Press [ENTER] to play again.", ScreenWidth / 2, ScreenHeight / 2 + 80, 20, ORANGE);
 				}
-
-				// Draw the plane.
-				Vector3 axis;
-				float angle;
-				QuaternionToAxisAngle(rotation, &axis, &angle);
-
-				rlPushMatrix();
-				{
-					rlTranslatef(position.x, position.y, position.z);
-					rlRotatef(angle* RAD2DEG, axis.x, axis.y, axis.z);
-
-					// Now that the matrix has been setup, draw the plane at the "origin".
-					// Fuselage, Wings, Tail
-					DrawCylinderEx(
-						(Vector3) { 0.0f, 0.0f, -4.0f },
-						(Vector3) { 0.0f, 0.0f, 6.0f },
-						1.2f, 0.2f, 6,
-						(Color) { 55, 75, 65, 255 });
-					DrawCube(
-						(Vector3) { 0.0f, 0.0f, -1.0f },
-						16.0f, 0.2f, 4.0f,
-						(Color) { 50, 68, 58, 255 });
-					DrawCube(
-						(Vector3) { 0.0f, 1.5f, -3.0f },
-						0.2f, 3.0f, 2.0f,
-						(Color) { 45, 60, 50, 255 });
-
-				} rlPopMatrix();
-
-			} EndMode3D();
-
-			// HUD
-			Vector3 cameraForward = Vector3Subtract(camera.target, camera.position);
-			for (int i = 0; i < MAX_BUILDINGS; i++)
-			{
-				Vector3 cameraToBuilding = Vector3Subtract(buildings[i].position, camera.position);
-				if (Vector3DotProduct(cameraForward, cameraToBuilding) < 0)
-					continue;
-
-				Vector2 buildingScreenPos = GetWorldToScreen(buildings[i].position, camera);
-				DrawText(TextFormat("%d", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
 			}
 
-			DrawText(TextFormat("SPEED: %d KTS", (int)speed), 40, 40, 20, GREEN);
-			DrawText(TextFormat("ALTITUDE: %d FT", (int)position.y * 10), 40, 70, 20, GREEN);
-			DrawText(TextFormat("TARGETS DESTROYED: %d", score), 40, 130, 20, ORANGE);
-
-			// Crosshairs
-			Vector3 xhairPos = Vector3Add(position, Vector3Scale(forward, 75));
-			Vector2 xhairScreenPos = GetWorldToScreen(xhairPos, camera);
-			DrawCrosshair(xhairScreenPos, 40);
-			xhairPos = Vector3Add(position, Vector3Scale(forward, 225));
-			xhairScreenPos = GetWorldToScreen(xhairPos, camera);
-			DrawCrosshair(xhairScreenPos, 13);
-
-			DrawFPS(10, 10);
+			BeginBlendMode(BLEND_ADDITIVE);
+			{
+				DrawFPS(10, 10);
+			} EndBlendMode();
 
 		} EndDrawing();
 	}
@@ -302,4 +409,11 @@ void DrawCrosshair(Vector2 screenPos, float radius)
 		screenPos.x + radius, screenPos.y,
 		screenPos.x + radius / 1.5f, screenPos.y,
 		color);
+}
+
+void DrawTextCentered(const char* message, int x, int y, int size, Color color)
+{
+	x -= MeasureText(message, size) / 2;
+	y -= size / 2;
+	DrawText(message, x, y, size, color);
 }
