@@ -24,6 +24,11 @@ typedef struct Projectile {
 	bool active;
 } Projectile;
 
+typedef struct Building {
+	Vector3 position;
+	bool active;
+} Building;
+
 int main ()
 {
 	// Tell the window to use vsync and work on high DPI displays
@@ -35,16 +40,17 @@ int main ()
 	InitWindow(ScreenWidth, ScreenHeight, "Ray Squadron");
 
 	// =======================================
-	// Scene Init
+	// Buildings init
 	// =======================================
-	Vector3 buildings[MAX_BUILDINGS] = {0};
+	Building buildings[MAX_BUILDINGS] = {0};
 	for (int i = 0; i < MAX_BUILDINGS; i++)
 	{
-		buildings[i] = (Vector3){
+		buildings[i].position = (Vector3){
 			(float)GetRandomValue(-500, 500),
 			10,
 			(float)GetRandomValue(-500, 500)
 		};
+		buildings[i].active = true;
 	}
 
 	// =======================================
@@ -174,8 +180,9 @@ int main ()
 				// Draw buildings.
 				for (int i = 0; i < MAX_BUILDINGS; i++)
 				{
-					DrawCube(buildings[i], 20, 20, 20, (Color) { 80, 80, 80, 255 });
-					DrawCubeWires(buildings[i], 20, 20, 20, BLACK);
+					DrawCube(buildings[i].position, 20, 20, 20, (Color) { 80, 80, 80, 255 });
+					DrawCubeWires(buildings[i].position, 20, 20, 20, BLACK);
+				}
 
 				// Draw bullets.
 				for (int i = 0; i < MAX_BULLETS; i++)
@@ -222,11 +229,11 @@ int main ()
 			Vector3 cameraForward = Vector3Subtract(camera.target, camera.position);
 			for (int i = 0; i < MAX_BUILDINGS; i++)
 			{
-				Vector3 cameraToBuilding = Vector3Subtract(buildings[i], camera.position);
+				Vector3 cameraToBuilding = Vector3Subtract(buildings[i].position, camera.position);
 				if (Vector3DotProduct(cameraForward, cameraToBuilding) < 0)
 					continue;
 
-				Vector2 buildingScreenPos = GetWorldToScreen(buildings[i], camera);
+				Vector2 buildingScreenPos = GetWorldToScreen(buildings[i].position, camera);
 				DrawText(TextFormat("%i", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
 			}
 
