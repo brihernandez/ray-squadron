@@ -26,8 +26,11 @@ typedef struct Projectile {
 
 typedef struct Building {
 	Vector3 position;
+	BoundingBox bounds;
 	bool active;
 } Building;
+
+void DrawCrosshair(Vector2 screenPos, float radius);
 
 int main ()
 {
@@ -45,12 +48,17 @@ int main ()
 	Building buildings[MAX_BUILDINGS] = {0};
 	for (int i = 0; i < MAX_BUILDINGS; i++)
 	{
+		const int size = 10;
 		buildings[i].position = (Vector3){
 			(float)GetRandomValue(-500, 500),
-			10,
+			size,
 			(float)GetRandomValue(-500, 500)
 		};
 		buildings[i].active = true;
+		buildings[i].bounds = (BoundingBox){
+			.min = (Vector3) {buildings[i].position.x - size, buildings[i].position.y - size, buildings[i].position.z - size},
+			.max = (Vector3) {buildings[i].position.x + size, buildings[i].position.y + size, buildings[i].position.z + size},
+		};
 	}
 
 	// =======================================
@@ -82,6 +90,8 @@ int main ()
 	// =======================================
 	// Main Loop
 	// =======================================
+
+	int score = 0;
 
 	while (!WindowShouldClose())
 	{
@@ -149,6 +159,20 @@ int main ()
 				bullets[i].position = Vector3Add(bullets[i].position, bulletDelta);
 				bullets[i].lifeTime -= deltaTime;
 				bullets[i].active = bullets[i].lifeTime > 0 && bullets[i].position.y > 0;
+
+				for (int b = 0; b < MAX_BUILDINGS; b++)
+				{
+					if (!buildings[b].active)
+						continue;
+
+					if (CheckCollisionBoxSphere(buildings[b].bounds, bullets[i].position, 1))
+					{
+						buildings[b].active = false;
+						bullets[i].active = false;
+						score += 1;
+						break;
+					}
+				}
 			}
 		}
 
@@ -180,6 +204,9 @@ int main ()
 				// Draw buildings.
 				for (int i = 0; i < MAX_BUILDINGS; i++)
 				{
+					if (!buildings[i].active)
+						continue;
+
 					DrawCube(buildings[i].position, 20, 20, 20, (Color) { 80, 80, 80, 255 });
 					DrawCubeWires(buildings[i].position, 20, 20, 20, BLACK);
 				}
@@ -234,18 +261,20 @@ int main ()
 					continue;
 
 				Vector2 buildingScreenPos = GetWorldToScreen(buildings[i].position, camera);
-				DrawText(TextFormat("%i", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
+				DrawText(TextFormat("%d", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
 			}
 
-			DrawText(TextFormat("SPEED: %i KTS", (int)speed), 40, 40, 20, GREEN);
-			DrawText(TextFormat("ALTITUDE: %i FT", (int)position.y * 10), 40, 70, 20, GREEN);
+			DrawText(TextFormat("SPEED: %d KTS", (int)speed), 40, 40, 20, GREEN);
+			DrawText(TextFormat("ALTITUDE: %d FT", (int)position.y * 10), 40, 70, 20, GREEN);
+			DrawText(TextFormat("TARGETS DESTROYED: %d", score), 40, 130, 20, ORANGE);
 
-			// Crosshair reticle?
-			DrawCircleLines(ScreenWidth / 2, ScreenHeight / 2, 50, GREEN);
-			DrawLine(
-				ScreenWidth / 2 - 100, ScreenHeight / 2,
-				ScreenWidth / 2 + 100, ScreenHeight / 2,
-				GREEN);
+			// Crosshairs
+			Vector3 xhairPos = Vector3Add(position, Vector3Scale(forward, 75));
+			Vector2 xhairScreenPos = GetWorldToScreen(xhairPos, camera);
+			DrawCrosshair(xhairScreenPos, 40);
+			xhairPos = Vector3Add(position, Vector3Scale(forward, 225));
+			xhairScreenPos = GetWorldToScreen(xhairPos, camera);
+			DrawCrosshair(xhairScreenPos, 13);
 
 			DrawFPS(10, 10);
 
@@ -259,4 +288,18 @@ int main ()
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();
 	return 0;
+}
+
+void DrawCrosshair(Vector2 screenPos, float radius)
+{
+	Color color = RED;
+	DrawCircleLinesV(screenPos, radius, color);
+	DrawLine(
+		screenPos.x - radius, screenPos.y,
+		screenPos.x - radius / 1.5f, screenPos.y,
+		color);
+	DrawLine(
+		screenPos.x + radius, screenPos.y,
+		screenPos.x + radius / 1.5f, screenPos.y,
+		color);
 }
