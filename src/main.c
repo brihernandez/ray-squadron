@@ -13,6 +13,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 
+#define BUILDING_SIZE 20
 #define MAX_BUILDINGS 15
 #define MAX_BULLETS 100
 #define BULLET_LIFETIME 1
@@ -124,16 +125,15 @@ int main()
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
-						const float size = 10;
 						buildings[i].position = (Vector3){
 							(float)GetRandomValue(-500, 500),
-							size,
+							BUILDING_SIZE,
 							(float)GetRandomValue(-500, 500)
 						};
 						buildings[i].active = true;
 						buildings[i].bounds = (BoundingBox){
-							.min = (Vector3) {buildings[i].position.x - size, buildings[i].position.y - size, buildings[i].position.z - size},
-							.max = (Vector3) {buildings[i].position.x + size, buildings[i].position.y + size, buildings[i].position.z + size},
+							.min = (Vector3) {buildings[i].position.x - BUILDING_SIZE, buildings[i].position.y - BUILDING_SIZE, buildings[i].position.z - BUILDING_SIZE},
+							.max = (Vector3) {buildings[i].position.x + BUILDING_SIZE, buildings[i].position.y + BUILDING_SIZE, buildings[i].position.z + BUILDING_SIZE},
 						};
 					}
 
@@ -318,8 +318,8 @@ int main()
 						if (!buildings[i].active)
 							continue;
 
-						DrawCube(buildings[i].position, 20, 20, 20, (Color) { 80, 80, 80, 255 });
-						DrawCubeWires(buildings[i].position, 20, 20, 20, BLACK);
+						DrawCube(buildings[i].position, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BUILDING_SIZE * 2, (Color) { 80, 80, 80, 255 });
+						DrawCubeWires(buildings[i].position, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BLACK);
 					}
 
 					// Draw bullets.
