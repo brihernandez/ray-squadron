@@ -15,6 +15,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #define BUILDING_SIZE 20
 #define MAX_BUILDINGS 15
+#define MAX_ENEMIES 10
 #define MAX_BULLETS 100
 #define BULLET_LIFETIME 1
 
@@ -37,11 +38,31 @@ typedef struct Building {
 	bool active;
 } Building;
 
+typedef struct Enemy {
+	Vector3 position;
+	Vector3 velocity;
+	BoundingBox bounds;
+	bool active;
+} Enemy;
+
+BoundingBox EnemyCalculateBounds(Enemy e)
+{
+	float size = 8;
+	BoundingBox b = (BoundingBox){
+		//.min = Vector3Subtract(e.position, (Vector3) { size, size, size }),
+		//.max = Vector3Add(e.position, (Vector3) { size, size, size }),
+		.min = (Vector3){e.position.x - size, e.position.y - size, e.position.z - size},
+		.max = (Vector3){e.position.x + size, e.position.y + size, e.position.z + size},
+	};
+	return b;
+}
+
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 float SmoothDamp(float from, float to, float speed, float dt);
 Vector3 Vector3SmoothDamp(Vector3 from, Vector3 to, float speed, float dt);
 Quaternion QuaternionSmoothDamp(Quaternion from, Quaternion to, float speed, float dt);
+Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation);
 void DrawGridColored(int slices, float spacing, Color color);
 
 int main()
@@ -70,9 +91,10 @@ int main()
 	Model mdl_ship = LoadModel("ship.glb");
 
 	// =======================================
-	// Buildings init
+	// Enemies init
 	// =======================================
 	Building buildings[MAX_BUILDINGS] = {0};
+	Enemy enemies[MAX_ENEMIES] = {0};
 
 	// =======================================
 	// Weapons init
@@ -138,6 +160,22 @@ int main()
 							.min = (Vector3) {buildings[i].position.x - BUILDING_SIZE, buildings[i].position.y - BUILDING_SIZE, buildings[i].position.z - BUILDING_SIZE},
 							.max = (Vector3) {buildings[i].position.x + BUILDING_SIZE, buildings[i].position.y + BUILDING_SIZE, buildings[i].position.z + BUILDING_SIZE},
 						};
+					}
+
+					for (int i = 0; i < MAX_ENEMIES; i++)
+					{
+						enemies[i].position = (Vector3){
+							(float)GetRandomValue(-500, 500),
+							(float)GetRandomValue(50, 200),
+							(float)GetRandomValue(-500, 500),
+						};
+						enemies[i].velocity = (Vector3){
+							(float)GetRandomValue(-60, 60),
+							(float)GetRandomValue(-10, 10),
+							(float)GetRandomValue(-60, 60),
+						};
+						enemies[i].active = true;
+						enemies[i].bounds = EnemyCalculateBounds(enemies[i]);
 					}
 
 					for (int i = 0; i < MAX_BULLETS; i++)
@@ -244,6 +282,24 @@ int main()
 					}
 				}
 
+				for (int i = 0; i < MAX_ENEMIES; i++)
+				{
+					if (enemies[i].active == false)
+						continue;
+
+					Enemy* e = &enemies[i];
+					e->position = Vector3Add(e->position, Vector3Scale(e->velocity, deltaTime));
+
+					if (e->position.x > 500) e->velocity.x *= -1;
+					if (e->position.x < -500) e->velocity.x *= -1;
+					if (e->position.y > 200) e->velocity.y *= -1;
+					if (e->position.y < 10) e->velocity.y *= -1;
+					if (e->position.z > 500) e->velocity.z *= -1;
+					if (e->position.z < -500) e->velocity.z *= -1;
+
+					e->bounds = EnemyCalculateBounds(*e);
+				}
+
 				// Update weapons (bullet movement)
 				for (int i = 0; i < MAX_BULLETS; i++)
 				{
@@ -268,11 +324,26 @@ int main()
 								break;
 							}
 						}
+
+						for (int e = 0; e < MAX_ENEMIES; e++)
+						{
+							if (!enemies[e].active)
+								continue;
+
+							if (CheckCollisionBoxSphere(enemies[e].bounds, bullets[i].position, 1))
+							{
+								enemies[e].active = false;
+								bullets[i].active = false;
+								targetsDestroyed += 1;
+								PlaySound(sfx_explode);
+								break;
+							}
+						}
 					}
 				}
 
 				// Check win condition.
-				if (targetsDestroyed >= MAX_BUILDINGS)
+				if (targetsDestroyed >= MAX_BUILDINGS + MAX_ENEMIES)
 				{
 					currentScreen = ENDING;
 					StopMusicStream(bgm);
@@ -325,6 +396,17 @@ int main()
 						DrawCubeWires(buildings[i].position, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BLACK);
 					}
 
+					// Draw enemies.
+					for (int i = 0; i < MAX_ENEMIES; i++)
+					{
+						if (!enemies[i].active)
+							continue;
+
+						mdl_ship.transform = MatrixBuildTransform(enemies[i].position, QuaternionIdentity());
+						DrawModel(mdl_ship, Vector3Zero(), 1, RED);
+						DrawBoundingBox(enemies[i].bounds, YELLOW);
+					}
+
 					// Draw bullets.
 					for (int i = 0; i < MAX_BULLETS; i++)
 					{
@@ -337,9 +419,7 @@ int main()
 					}
 
 					// Draw the plane.
-					Matrix shipTransform = MatrixTranslate(position.x, position.y, position.z);
-					shipTransform = MatrixMultiply(QuaternionToMatrix(rotation), shipTransform);
-					mdl_ship.transform = shipTransform;
+					mdl_ship.transform = MatrixBuildTransform(position, rotation);
 					DrawModel(mdl_ship, Vector3Zero(), 1, WHITE);
 
 				} EndMode3D();
@@ -428,6 +508,13 @@ Vector3 Vector3SmoothDamp(Vector3 from, Vector3 to, float speed, float dt)
 Quaternion QuaternionSmoothDamp(Quaternion from, Quaternion to, float speed, float dt)
 {
 	return QuaternionSlerp(from, to, 1 - expf(-speed * dt));
+}
+
+Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation)
+{
+	Matrix transform = MatrixTranslate(position.x, position.y, position.z);
+	transform = MatrixMultiply(QuaternionToMatrix(rotation), transform);
+	return transform;
 }
 
 void DrawGridColored(int slices, float spacing, Color color)
