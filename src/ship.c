@@ -65,8 +65,11 @@ void ShipUpdate(Ship* ship, ShipInput input, float deltaTime)
 
 void ShipDraw(Ship* ship, Model* model, Color color)
 {
+	float bankAngle = 30.f * DEG2RAD;
+	float visualBank = Remap(ship->localAngularVelocity.y, -ship->handling.yawRate, ship->handling.yawRate, bankAngle, -bankAngle);
+	Quaternion visualRotation = QuaternionMultiply(QuaternionFromAxisAngle(ship->forward, visualBank), ship->rotation);
 	Matrix transform = MatrixTranslate(ship->position.x, ship->position.y, ship->position.z);
-	model->transform = MatrixMultiply(QuaternionToMatrix(ship->rotation), transform);
+	model->transform = MatrixMultiply(QuaternionToMatrix(visualRotation), transform);
 	DrawModel(*model, Vector3Zero(), 1, color);
 }
 
