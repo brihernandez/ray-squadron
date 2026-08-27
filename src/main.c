@@ -100,9 +100,10 @@ int main()
 	// Weapons init
 	// =======================================
 	Projectile bullets[MAX_BULLETS] = {0};
-	float fireDelay = 0.08f;
+	float fireDelay = 0.10f;
 	float timeSinceLastShot = 0;
 	float muzzleVelocity = 800;
+	int barrelIndex = 0;
 
 	// =======================================
 	// Physics state
@@ -273,7 +274,20 @@ int main()
 						{
 							bullets[i].active = true;
 							bullets[i].lifeTime = BULLET_LIFETIME;
-							bullets[i].position = Vector3Add(position, Vector3Scale(forward, 5));
+							if (barrelIndex == 0)
+							{
+								Vector3 firePoint = Vector3Scale(forward, 5);
+								firePoint = Vector3Add(Vector3Scale(right, -2), firePoint);
+								bullets[i].position = Vector3Add(position, firePoint);
+								barrelIndex = 1;
+							}
+							else
+							{
+								Vector3 firePoint = Vector3Scale(forward, 5);
+								firePoint = Vector3Add(Vector3Scale(right, 2), firePoint);
+								bullets[i].position = Vector3Add(position, firePoint);
+								barrelIndex = 0;
+							}
 							bullets[i].velocity = Vector3Scale(forward, speed + muzzleVelocity);
 							timeSinceLastShot = 0;
 							PlaySound(sfx_shoot);
