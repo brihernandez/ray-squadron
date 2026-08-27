@@ -18,9 +18,18 @@
     <ClInclude Include="include\resource_dir.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\ship.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\smoothdamp.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ship.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

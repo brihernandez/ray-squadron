@@ -13,6 +13,10 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 
+#include "ship.h"
+
+#include "smoothdamp.h"
+
 #define BUILDING_SIZE 20
 #define MAX_BUILDINGS 15
 #define MAX_ENEMIES 10
@@ -59,9 +63,6 @@ BoundingBox EnemyCalculateBounds(Enemy e)
 
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
-float SmoothDamp(float from, float to, float speed, float dt);
-Vector3 Vector3SmoothDamp(Vector3 from, Vector3 to, float speed, float dt);
-Quaternion QuaternionSmoothDamp(Quaternion from, Quaternion to, float speed, float dt);
 Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation);
 void DrawGridColored(int slices, float spacing, Color color);
 
@@ -91,6 +92,27 @@ int main()
 	Model mdl_ship = LoadModel("ship.glb");
 
 	// =======================================
+	// Player init
+	// =======================================
+
+	ShipHandling playerShipHandling = {
+		.pitchRate = 1.5,
+		.yawRate = 1.5,
+		.rollRate = 3.0,
+		.maxSpeed = 80,
+		.minSpeed = 30,
+	};
+	ShipWeapons playerShipWeapons = {
+		.fireDelay = 0.10,
+		.muzzleVelocity = 800,
+	};
+
+	Vector3 startPosition = {0, 100, 0};
+
+	Ship playerShip = ShipInit(playerShipHandling, playerShipWeapons);
+	playerShip.position = startPosition;
+
+	// =======================================
 	// Enemies init
 	// =======================================
 	Building buildings[MAX_BUILDINGS] = {0};
@@ -104,17 +126,6 @@ int main()
 	float timeSinceLastShot = 0;
 	float muzzleVelocity = 800;
 	int barrelIndex = 0;
-
-	// =======================================
-	// Physics state
-	// =======================================
-	const Vector3 startPosition = {0, 100, 0};
-	const float startSpeed = 80;
-
-	Vector3 position = startPosition;
-	Quaternion rotation = QuaternionIdentity();
-	Vector3 angularVelocity = Vector3Zero();
-	float speed = startSpeed;
 
 	// =======================================
 	// Camera Init
@@ -144,10 +155,8 @@ int main()
 			{
 				if (IsKeyPressed(KEY_ENTER))
 				{
-					position = startPosition;
-					rotation = QuaternionIdentity();
-					angularVelocity = Vector3Zero();
-					speed = startSpeed;
+					playerShip = ShipInit(playerShipHandling, playerShipWeapons);
+					playerShip.position = startPosition;
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
@@ -198,69 +207,42 @@ int main()
 			case GAMEPLAY:
 			{
 				float deltaTime = GetFrameTime();
-				float pitchSpeed = 1.5;
-				float rollSpeed = 3;
-				float yawSpeed = 1.5;
 
 				// Rotate
-				float pitch = 0;
-				float yaw = 0;
-				float roll = 0;
+				ShipInput input = {0};
 				if (IsKeyDown(KEY_W)) {
-					pitch += 1;
+					input.pitch += 1;
 				}
 				if (IsKeyDown(KEY_S)) {
-					pitch -= 1;
+					input.pitch -= 1;
 				}
 				if (IsKeyDown(KEY_A)) {
-					roll -= 0.2f;
-					yaw += 1;
+					input.roll -= 0.2f;
+					input.yaw += 1;
 				}
 				if (IsKeyDown(KEY_D)) {
-					roll += 0.2f;
-					yaw -= 1;
+					input.roll += 0.2f;
+					input.yaw -= 1;
 				}
 				if (IsKeyDown(KEY_Q)) {
-					roll -= 1;
+					input.roll -= 1;
 				}
 				if (IsKeyDown(KEY_E)) {
-					roll += 1;
+					input.roll += 1;
 				}
+				input.isFiring = IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0);
 
-				// Autolevel
-				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, rotation);
-				Vector3 up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, rotation);
-				Vector3 right = Vector3RotateByQuaternion((Vector3){1, 0, 0}, rotation);
-				roll -= right.y / 2;
-
-				pitch = Clamp(pitch, -1, 1);
-				yaw = Clamp(yaw, -1, 1);
-				roll = Clamp(roll, -1, 1);
-
-				float smoothSpeed = 5;
-				angularVelocity.x = SmoothDamp(angularVelocity.x, pitch * pitchSpeed, smoothSpeed, deltaTime);
-				angularVelocity.y = SmoothDamp(angularVelocity.y, yaw * yawSpeed, smoothSpeed, deltaTime);
-				angularVelocity.z = SmoothDamp(angularVelocity.z, roll * rollSpeed, smoothSpeed, deltaTime);
-
-				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, angularVelocity.x * deltaTime));
-				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, angularVelocity.y * deltaTime));
-				rotation = QuaternionMultiply(rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, angularVelocity.z * deltaTime));
-				rotation = QuaternionNormalize(rotation);
-
-				// Translate
-				position = Vector3Add(position, Vector3Scale(forward, speed * deltaTime));
-				if (position.y < 2)
-					position.y = 2;
+				ShipUpdate(&playerShip, input, deltaTime);
 
 				// Position chase camera.
-				Vector3 camPos = position;
-				camPos = Vector3Add(camPos, Vector3Scale(forward, -40));
-				camPos = Vector3Add(camPos, Vector3Scale(up, 10));
+				Vector3 camPos = playerShip.position;
+				camPos = Vector3Add(camPos, Vector3Scale(playerShip.forward, -40));
+				camPos = Vector3Add(camPos, Vector3Scale(playerShip.up, 10));
 
 				// Apply to the raylib camera.
 				camera.position = Vector3SmoothDamp(camera.position, camPos, 10, deltaTime);
-				camera.target = Vector3Add(position, Vector3Scale(forward, 225));
-				camera.up = up;
+				camera.target = Vector3Add(playerShip.position, Vector3Scale(playerShip.forward, 225));
+				camera.up = playerShip.up;
 
 				// Update weapons (firing)
 				timeSinceLastShot += deltaTime;
@@ -276,19 +258,19 @@ int main()
 							bullets[i].lifeTime = BULLET_LIFETIME;
 							if (barrelIndex == 0)
 							{
-								Vector3 firePoint = Vector3Scale(forward, 5);
-								firePoint = Vector3Add(Vector3Scale(right, -2), firePoint);
-								bullets[i].position = Vector3Add(position, firePoint);
+								Vector3 firePoint = Vector3Scale(playerShip.forward, 5);
+								firePoint = Vector3Add(Vector3Scale(playerShip.right, -2), firePoint);
+								bullets[i].position = Vector3Add(playerShip.position, firePoint);
 								barrelIndex = 1;
 							}
 							else
 							{
-								Vector3 firePoint = Vector3Scale(forward, 5);
-								firePoint = Vector3Add(Vector3Scale(right, 2), firePoint);
-								bullets[i].position = Vector3Add(position, firePoint);
+								Vector3 firePoint = Vector3Scale(playerShip.forward, 5);
+								firePoint = Vector3Add(Vector3Scale(playerShip.right, 2), firePoint);
+								bullets[i].position = Vector3Add(playerShip.position, firePoint);
 								barrelIndex = 0;
 							}
-							bullets[i].velocity = Vector3Scale(forward, speed + muzzleVelocity);
+							bullets[i].velocity = Vector3Scale(playerShip.forward, playerShip.speed + muzzleVelocity);
 							timeSinceLastShot = 0;
 							PlaySound(sfx_shoot);
 							break;
@@ -437,8 +419,7 @@ int main()
 					}
 
 					// Draw the plane.
-					mdl_ship.transform = MatrixBuildTransform(position, rotation);
-					DrawModel(mdl_ship, Vector3Zero(), 1, WHITE);
+					ShipDraw(&playerShip, &mdl_ship, WHITE);
 
 				} EndMode3D();
 
@@ -455,11 +436,11 @@ int main()
 				}
 
 				// Crosshairs
-				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, rotation);
-				Vector3 xhairPos = Vector3Add(position, Vector3Scale(forward, 75));
+				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, playerShip.rotation);
+				Vector3 xhairPos = Vector3Add(playerShip.position, Vector3Scale(forward, 75));
 				Vector2 xhairScreenPos = GetWorldToScreen(xhairPos, camera);
 				DrawCrosshair(xhairScreenPos, 40);
-				xhairPos = Vector3Add(position, Vector3Scale(forward, 225));
+				xhairPos = Vector3Add(playerShip.position, Vector3Scale(forward, 225));
 				xhairScreenPos = GetWorldToScreen(xhairPos, camera);
 				DrawCrosshair(xhairScreenPos, 13);
 
@@ -511,21 +492,6 @@ void DrawTextCentered(const char* message, int x, int y, int size, Color color)
 	x -= MeasureText(message, size) / 2;
 	y -= size / 2;
 	DrawText(message, x, y, size, color);
-}
-
-float SmoothDamp(float from, float to, float speed, float dt)
-{
-	return Lerp(from, to, 1 - expf(-speed * dt));
-}
-
-Vector3 Vector3SmoothDamp(Vector3 from, Vector3 to, float speed, float dt)
-{
-	return Vector3Lerp(from, to, 1 - expf(-speed * dt));
-}
-
-Quaternion QuaternionSmoothDamp(Quaternion from, Quaternion to, float speed, float dt)
-{
-	return QuaternionSlerp(from, to, 1 - expf(-speed * dt));
 }
 
 Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation)

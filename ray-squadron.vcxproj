@@ -302,9 +302,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\resource_dir.h" />
+    <ClInclude Include="src\ship.h" />
+    <ClInclude Include="src\smoothdamp.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\ship.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\icon.ico" />
