@@ -96,14 +96,14 @@ int main()
 	// =======================================
 
 	ShipHandling playerShipHandling = {
-		.pitchRate = 1.5,
-		.yawRate = 1.5,
-		.rollRate = 3.0,
+		.pitchRate = 1.5f,
+		.yawRate = 1.5f,
+		.rollRate = 3.0f,
 		.maxSpeed = 80,
 		.minSpeed = 30,
 	};
 	ShipWeapons playerShipWeapons = {
-		.fireDelay = 0.10,
+		.fireDelay = 0.10f,
 		.muzzleVelocity = 800,
 	};
 
@@ -374,7 +374,7 @@ int main()
 					// Draw the background on a separate pass so that depth can be disabled.
 					rlDisableDepthMask();
 					DrawPlane(Vector3Zero(), (Vector2) { 10000, 10000 }, ground);
-					DrawGridColored(100, 100, ColorLerp(ground, WHITE, 0.3));
+					DrawGridColored(100, 100, ColorLerp(ground, WHITE, 0.3f));
 
 				} EndMode3D();
 
@@ -427,7 +427,8 @@ int main()
 						continue;
 
 					Vector2 buildingScreenPos = GetWorldToScreen(buildings[i].position, camera);
-					DrawText(TextFormat("%d", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
+					DrawText(TextFormat("%d", i), (int)buildingScreenPos.x, (int)buildingScreenPos.y, 10, MAGENTA);
+				}
 
 				for (int i = 0; i < MAX_ENEMIES; i++)
 				{
@@ -454,7 +455,7 @@ int main()
 				if (currentScreen == ENDING)
 				{
 					// Win message on completion
-					DrawRectangle(0, 0, ScreenWidth, ScreenHeight, Fade(BLACK, 0.8));
+					DrawRectangle(0, 0, ScreenWidth, ScreenHeight, Fade(BLACK, 0.8f));
 					DrawTextCentered("YOU BEAT THE GAME!", ScreenWidth / 2, ScreenHeight / 2 - 30, 60, ORANGE);
 					DrawTextCentered("Press [ENTER] to play again.", ScreenWidth / 2, ScreenHeight / 2 + 30, 20, ORANGE);
 				}

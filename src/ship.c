@@ -85,7 +85,7 @@ void EnemyControllerUpdate(EnemyController* enemy, Ship* ship, float deltaTime)
 	enemy->thinkCooldown -= deltaTime;
 
 	float deltaHeight = enemy->targetAltitude - ship->position.y;
-	float targetForwardY = Remap(deltaHeight, 50, -50, 0.3, -0.3);
+	float targetForwardY = Remap(deltaHeight, 50.f, -50.f, 0.3f, -0.3f);
 	//targetForwardY = Clamp(targetForwardY, -0.3f, 0.3f);
 
 	float forwardY = ship->forward.y;
