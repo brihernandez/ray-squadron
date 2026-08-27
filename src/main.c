@@ -416,9 +416,13 @@ int main()
 						if (!enemies[i].active)
 							continue;
 
-						mdl_ship.transform = MatrixBuildTransform(enemies[i].position, QuaternionIdentity());
+						Quaternion rotation = QuaternionFromVector3ToVector3(
+							(Vector3) { 0, 0, 1 },
+							enemies[i].velocity);
+
+						mdl_ship.transform = MatrixBuildTransform(enemies[i].position, rotation);
 						DrawModel(mdl_ship, Vector3Zero(), 1, RED);
-						DrawBoundingBox(enemies[i].bounds, YELLOW);
+						DrawBoundingBox(enemies[i].bounds, (Color){ 253, 249, 0, 64 });
 					}
 
 					// Draw bullets.
