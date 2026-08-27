@@ -151,6 +151,9 @@ int main()
 
 		UpdateMusicStream(bgm);
 
+		if (IsKeyPressed(KEY_F11))
+			ToggleFullscreen();
+
 		switch (currentScreen) {
 			case TITLE:
 			case ENDING:
