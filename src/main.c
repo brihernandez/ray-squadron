@@ -116,7 +116,9 @@ int main()
 	// Enemies init
 	// =======================================
 	Building buildings[MAX_BUILDINGS] = {0};
-	Enemy enemies[MAX_ENEMIES] = {0};
+
+	EnemyController enemyControllers[MAX_ENEMIES] = {0};
+	Ship enemyShips[MAX_ENEMIES] = {0};
 
 	// =======================================
 	// Weapons init
@@ -174,18 +176,17 @@ int main()
 
 					for (int i = 0; i < MAX_ENEMIES; i++)
 					{
-						enemies[i].position = (Vector3){
+						enemyShips[i] = ShipInit(playerShipHandling, playerShipWeapons);
+
+						enemyShips[i].position = (Vector3){
 							(float)GetRandomValue(-500, 500),
 							(float)GetRandomValue(50, 200),
 							(float)GetRandomValue(-500, 500),
 						};
-						enemies[i].velocity = (Vector3){
-							(float)GetRandomValue(-60, 60),
-							(float)GetRandomValue(-10, 10),
-							(float)GetRandomValue(-60, 60),
-						};
-						enemies[i].active = true;
-						enemies[i].bounds = EnemyCalculateBounds(enemies[i]);
+
+						Quaternion randomRotation = QuaternionFromEuler(0, GetRandomValue(0, 360) * DEG2RAD, 0);
+						enemyShips[i].rotation = randomRotation;
+						enemyControllers[i].targetAltitude = (float)GetRandomValue(100, 200);
 					}
 
 					for (int i = 0; i < MAX_BULLETS; i++)
@@ -280,20 +281,20 @@ int main()
 
 				for (int i = 0; i < MAX_ENEMIES; i++)
 				{
-					if (enemies[i].active == false)
+					if (enemyShips[i].isActive == false)
 						continue;
 
-					Enemy* e = &enemies[i];
-					e->position = Vector3Add(e->position, Vector3Scale(e->velocity, deltaTime));
+					EnemyControllerUpdate(&enemyControllers[i], &enemyShips[i], deltaTime);
+					ShipUpdate(&enemyShips[i], enemyControllers[i].input, deltaTime);
 
-					if (e->position.x > 500) e->velocity.x *= -1;
-					if (e->position.x < -500) e->velocity.x *= -1;
-					if (e->position.y > 200) e->velocity.y *= -1;
-					if (e->position.y < 10) e->velocity.y *= -1;
-					if (e->position.z > 500) e->velocity.z *= -1;
-					if (e->position.z < -500) e->velocity.z *= -1;
-
-					e->bounds = EnemyCalculateBounds(*e);
+					// Enemy ships don't have a way to steer smartly so just constrain them to the world.
+					Ship* e = &enemyShips[i];
+					if (e->position.x > 500) e->position.x = 500;
+					if (e->position.x < -500) e->position.x = -500;
+					if (e->position.y > 200) e->position.y = 200;
+					if (e->position.y < 10) e->position.y = 10;
+					if (e->position.z > 500) e->position.z = 500;
+					if (e->position.z < -500) e->position.z = -500;
 				}
 
 				// Update weapons (bullet movement)
@@ -323,12 +324,12 @@ int main()
 
 						for (int e = 0; e < MAX_ENEMIES; e++)
 						{
-							if (!enemies[e].active)
+							if (!enemyShips[e].isActive)
 								continue;
 
-							if (CheckCollisionBoxSphere(enemies[e].bounds, bullets[i].position, 1))
+							if (CheckCollisionBoxSphere(enemyShips[e].bounds, bullets[i].position, 1))
 							{
-								enemies[e].active = false;
+								enemyShips[e].isActive = false;
 								bullets[i].active = false;
 								targetsDestroyed += 1;
 								PlaySound(sfx_explode);
@@ -395,16 +396,10 @@ int main()
 					// Draw enemies.
 					for (int i = 0; i < MAX_ENEMIES; i++)
 					{
-						if (!enemies[i].active)
+						if (!enemyShips[i].isActive)
 							continue;
 
-						Quaternion rotation = QuaternionFromVector3ToVector3(
-							(Vector3) { 0, 0, 1 },
-							enemies[i].velocity);
-
-						mdl_ship.transform = MatrixBuildTransform(enemies[i].position, rotation);
-						DrawModel(mdl_ship, Vector3Zero(), 1, RED);
-						DrawBoundingBox(enemies[i].bounds, (Color){ 253, 249, 0, 64 });
+						ShipDraw(&enemyShips[i], &mdl_ship, RED);
 					}
 
 					// Draw bullets.
@@ -433,6 +428,18 @@ int main()
 
 					Vector2 buildingScreenPos = GetWorldToScreen(buildings[i].position, camera);
 					DrawText(TextFormat("%d", i), buildingScreenPos.x, buildingScreenPos.y, 10, MAGENTA);
+
+				for (int i = 0; i < MAX_ENEMIES; i++)
+				{
+					if (enemyShips[i].isActive == false)
+						continue;
+
+					Vector3 cameraToEnemy = Vector3Subtract(enemyShips[i].position, camera.position);
+					if (Vector3DotProduct(cameraForward, cameraToEnemy) < 0)
+						continue;
+
+					Vector2 screenPos = GetWorldToScreen(enemyShips[i].position, camera);
+					DrawText(TextFormat("%d", (int)enemyShips[i].position.y), (int)screenPos.x, (int)screenPos.y, 10, MAGENTA);
 				}
 
 				// Crosshairs

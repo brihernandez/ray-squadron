@@ -22,13 +22,15 @@ Ship ShipInit(ShipHandling handling, ShipWeapons weapons)
 	ship.forward = (Vector3){0, 0, 1};
 	ship.right = (Vector3){1, 0, 0};
 	ship.up = (Vector3){0, 1, 0};
-	ship.angularVelocity = (Vector3){0, 0, 0};
+	ship.localAngularVelocity = (Vector3){0, 0, 0};
 	ship.handling = handling;
 	ship.weapons = weapons;
 
 	ship.speed = handling.maxSpeed;
 	ship.timeSinceLastShot = 0;
 	ship.barrelIndex = 0;
+
+	ship.isActive = true;
 
 	return ship;
 }
@@ -44,19 +46,21 @@ void ShipUpdate(Ship* ship, ShipInput input, float deltaTime)
 
 	// Ship rotation.
 	float smoothSpeed = 5;
-	ship->angularVelocity.x = SmoothDamp(ship->angularVelocity.x, input.pitch * ship->handling.pitchRate, smoothSpeed, deltaTime);
-	ship->angularVelocity.y = SmoothDamp(ship->angularVelocity.y, input.yaw * ship->handling.yawRate, smoothSpeed, deltaTime);
-	ship->angularVelocity.z = SmoothDamp(ship->angularVelocity.z, input.roll * ship->handling.rollRate, smoothSpeed, deltaTime);
+	ship->localAngularVelocity.x = SmoothDamp(ship->localAngularVelocity.x, input.pitch * ship->handling.pitchRate, smoothSpeed, deltaTime);
+	ship->localAngularVelocity.y = SmoothDamp(ship->localAngularVelocity.y, input.yaw * ship->handling.yawRate, smoothSpeed, deltaTime);
+	ship->localAngularVelocity.z = SmoothDamp(ship->localAngularVelocity.z, input.roll * ship->handling.rollRate, smoothSpeed, deltaTime);
 
-	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, ship->angularVelocity.x* deltaTime));
-	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, ship->angularVelocity.y* deltaTime));
-	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, ship->angularVelocity.z* deltaTime));
+	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, ship->localAngularVelocity.x* deltaTime));
+	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, ship->localAngularVelocity.y* deltaTime));
+	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, ship->localAngularVelocity.z* deltaTime));
 	ship->rotation = QuaternionNormalize(ship->rotation);
 
 	// Ship translation.
 	ship->position = Vector3Add(ship->position, Vector3Scale(ship->forward, ship->speed * deltaTime));
 	if (ship->position.y < 2)
 		ship->position.y = 2;
+
+	ship->bounds = ShipCalculateBounds(ship->position);
 }
 
 void ShipDraw(Ship* ship, Model* model, Color color)
@@ -64,4 +68,34 @@ void ShipDraw(Ship* ship, Model* model, Color color)
 	Matrix transform = MatrixTranslate(ship->position.x, ship->position.y, ship->position.z);
 	model->transform = MatrixMultiply(QuaternionToMatrix(ship->rotation), transform);
 	DrawModel(*model, Vector3Zero(), 1, color);
+}
+
+BoundingBox ShipCalculateBounds(Vector3 position)
+{
+	float size = 8;
+	BoundingBox b = (BoundingBox){
+		.min = (Vector3){position.x - size, position.y - size, position.z - size},
+		.max = (Vector3){position.x + size, position.y + size, position.z + size},
+	};
+	return b;
+}
+
+void EnemyControllerUpdate(EnemyController* enemy, Ship* ship, float deltaTime)
+{
+	enemy->thinkCooldown -= deltaTime;
+
+	float deltaHeight = enemy->targetAltitude - ship->position.y;
+	float targetForwardY = Remap(deltaHeight, 50, -50, 0.3, -0.3);
+	//targetForwardY = Clamp(targetForwardY, -0.3f, 0.3f);
+
+	float forwardY = ship->forward.y;
+	float deltaForwardY = targetForwardY - forwardY;
+	enemy->input.pitch = -deltaForwardY;
+
+	if (enemy->thinkCooldown <= 0)
+	{
+		enemy->input.yaw = GetRandomValue(-100, 100) / 100.0f;
+		enemy->input.roll = enemy->input.yaw * -0.2f;
+		enemy->thinkCooldown = GetRandomValue(200, 400) / 100.0f;
+	}
 }

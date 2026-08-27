@@ -20,12 +20,14 @@ typedef struct Ship
 	Vector3 position;
 	Quaternion rotation;
 	Vector3 forward, right, up;
-	Vector3 angularVelocity;
+	Vector3 localAngularVelocity;
+	BoundingBox bounds;
 	ShipHandling handling;
 	ShipWeapons weapons;
 	float speed;
 	float timeSinceLastShot;
 	int barrelIndex;
+	bool isActive;
 } Ship;
 
 typedef struct ShipInput
@@ -34,9 +36,19 @@ typedef struct ShipInput
 	bool isFiring;
 } ShipInput;
 
+typedef struct EnemyController
+{
+	ShipInput input;
+	float targetAltitude;
+	float thinkCooldown;
+} EnemyController;
+
 ShipInput ShipInputNormalize(ShipInput input);
 
 Ship ShipInit(ShipHandling handling, ShipWeapons weapons);
 void ShipUpdate(Ship* ship, ShipInput input, float deltaTime);
 void ShipDraw(Ship* ship, Model* model, Color color);
 
+BoundingBox ShipCalculateBounds(Vector3 position);
+
+void EnemyControllerUpdate(EnemyController* enemy, Ship* ship, float deltaTime);
