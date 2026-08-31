@@ -21,7 +21,13 @@
     <ClInclude Include="src\ship.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\smoothdamp.h">
+    <ClInclude Include="src\bullets.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\smoothdamp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\world.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -32,20 +38,36 @@
     <ClCompile Include="src\ship.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\bullets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\icon.ico">
       <Filter>Windows Resource Files</Filter>
+    </None>
+    <None Include="resources\confirm.ogg">
+      <Filter>Game Resource Files</Filter>
+    </None>
+    <None Include="resources\explode.ogg">
+      <Filter>Game Resource Files</Filter>
+    </None>
+    <None Include="resources\realtrees.ogg">
+      <Filter>Game Resource Files</Filter>
+    </None>
+    <None Include="resources\ship.glb">
+      <Filter>Game Resource Files</Filter>
+    </None>
+    <None Include="resources\shoot.ogg">
+      <Filter>Game Resource Files</Filter>
+    </None>
+    <None Include="resources\win.ogg">
+      <Filter>Game Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\application.rc">
       <Filter>Windows Resource Files</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\wabbit_alpha.png">
-      <Filter>Game Resource Files</Filter>
-    </Image>
   </ItemGroup>
 </Project>

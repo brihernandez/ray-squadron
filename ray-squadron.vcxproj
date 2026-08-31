@@ -302,21 +302,27 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\resource_dir.h" />
+    <ClInclude Include="include\smoothdamp.h" />
+    <ClInclude Include="src\bullets.h" />
     <ClInclude Include="src\ship.h" />
-    <ClInclude Include="src\smoothdamp.h" />
+    <ClInclude Include="src\world.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\bullets.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\ship.c" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="resources\confirm.ogg" />
+    <None Include="resources\explode.ogg" />
+    <None Include="resources\realtrees.ogg" />
+    <None Include="resources\ship.glb" />
+    <None Include="resources\shoot.ogg" />
+    <None Include="resources\win.ogg" />
     <None Include="src\icon.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\application.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\wabbit_alpha.png" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="raylib.vcxproj">

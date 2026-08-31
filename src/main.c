@@ -13,53 +13,19 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 
+#include "world.h"
 #include "ship.h"
+#include "bullets.h"
 
 #include "smoothdamp.h"
 
 #define BUILDING_SIZE 20
-#define MAX_BUILDINGS 15
-#define MAX_ENEMIES 10
-#define MAX_BULLETS 100
-#define BULLET_LIFETIME 1
 
 typedef enum GameScreen {
 	TITLE,
 	GAMEPLAY,
 	ENDING,
 } GameScreen;
-
-typedef struct Projectile {
-	Vector3 position;
-	Vector3 velocity;
-	float lifeTime;
-	bool active;
-} Projectile;
-
-typedef struct Building {
-	Vector3 position;
-	BoundingBox bounds;
-	bool active;
-} Building;
-
-typedef struct Enemy {
-	Vector3 position;
-	Vector3 velocity;
-	BoundingBox bounds;
-	bool active;
-} Enemy;
-
-BoundingBox EnemyCalculateBounds(Enemy e)
-{
-	float size = 8;
-	BoundingBox b = (BoundingBox){
-		//.min = Vector3Subtract(e.position, (Vector3) { size, size, size }),
-		//.max = Vector3Add(e.position, (Vector3) { size, size, size }),
-		.min = (Vector3){e.position.x - size, e.position.y - size, e.position.z - size},
-		.max = (Vector3){e.position.x + size, e.position.y + size, e.position.z + size},
-	};
-	return b;
-}
 
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
@@ -115,15 +81,10 @@ int main()
 	// =======================================
 	// Enemies init
 	// =======================================
-	Building buildings[MAX_BUILDINGS] = {0};
-
-	EnemyController enemyControllers[MAX_ENEMIES] = {0};
-	Ship enemyShips[MAX_ENEMIES] = {0};
-
+	WorldState world = {0};
 	// =======================================
 	// Weapons init
 	// =======================================
-	Projectile bullets[MAX_BULLETS] = {0};
 	float fireDelay = 0.10f;
 	float timeSinceLastShot = 0;
 	float muzzleVelocity = 800;
@@ -141,7 +102,6 @@ int main()
 	// =======================================
 
 	GameScreen currentScreen = TITLE;
-	int targetsDestroyed = 0;
 
 	while (!WindowShouldClose())
 	{
@@ -165,44 +125,41 @@ int main()
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
-						buildings[i].position = (Vector3){
+						Building* b = &world.buildings[i];
+						b->position = (Vector3){
 							(float)GetRandomValue(-500, 500),
 							BUILDING_SIZE,
 							(float)GetRandomValue(-500, 500)
 						};
-						buildings[i].active = true;
-						buildings[i].bounds = (BoundingBox){
-							.min = (Vector3) {buildings[i].position.x - BUILDING_SIZE, buildings[i].position.y - BUILDING_SIZE, buildings[i].position.z - BUILDING_SIZE},
-							.max = (Vector3) {buildings[i].position.x + BUILDING_SIZE, buildings[i].position.y + BUILDING_SIZE, buildings[i].position.z + BUILDING_SIZE},
+						b->active = true;
+						b->bounds = (BoundingBox){
+							.min = (Vector3) {b->position.x - BUILDING_SIZE, b->position.y - BUILDING_SIZE, b->position.z - BUILDING_SIZE},
+							.max = (Vector3) {b->position.x + BUILDING_SIZE, b->position.y + BUILDING_SIZE, b->position.z + BUILDING_SIZE},
 						};
 					}
 
 					for (int i = 0; i < MAX_ENEMIES; i++)
 					{
-						enemyShips[i] = ShipInit(playerShipHandling, playerShipWeapons);
+						world.enemyShips[i] = ShipInit(playerShipHandling, playerShipWeapons);
 
-						enemyShips[i].position = (Vector3){
+						world.enemyShips[i].position = (Vector3){
 							(float)GetRandomValue(-500, 500),
 							(float)GetRandomValue(50, 200),
 							(float)GetRandomValue(-500, 500),
 						};
 
 						Quaternion randomRotation = QuaternionFromEuler(0, GetRandomValue(0, 360) * DEG2RAD, 0);
-						enemyShips[i].rotation = randomRotation;
-						enemyControllers[i].targetAltitude = (float)GetRandomValue(100, 200);
+						world.enemyShips[i].rotation = randomRotation;
+						world.enemyControllers[i].targetAltitude = (float)GetRandomValue(100, 200);
 					}
 
-					for (int i = 0; i < MAX_BULLETS; i++)
-					{
-						bullets[i].active = false;
-					}
-
+					BulletsInit(&world);
 					// Use this to tell if coming from the main menu or not.
-					if (targetsDestroyed > 0)
+					if (world.targetsDestroyed > 0)
 						PlayMusicStream(bgm);
 
 					currentScreen = GAMEPLAY;
-					targetsDestroyed = 0;
+					world.targetsDestroyed = 0;
 
 					PlaySound(sfx_confirm);
 				}
@@ -214,17 +171,17 @@ int main()
 
 				// Rotate
 				ShipInput input = {0};
-				if (IsKeyDown(KEY_W)) {
+				if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
 					input.pitch += 1;
 				}
-				if (IsKeyDown(KEY_S)) {
+				if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
 					input.pitch -= 1;
 				}
-				if (IsKeyDown(KEY_A)) {
+				if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
 					input.roll -= 0.2f;
 					input.yaw += 1;
 				}
-				if (IsKeyDown(KEY_D)) {
+				if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
 					input.roll += 0.2f;
 					input.yaw -= 1;
 				}
@@ -252,46 +209,39 @@ int main()
 				timeSinceLastShot += deltaTime;
 				if ((IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0)) && timeSinceLastShot >= fireDelay)
 				{
-					// Find first inactive bullet and use it to spawn.
-					// This whole thing can be done much better.
-					for (int i = 0; i < MAX_BULLETS; i++)
+					Vector3 bulletPosition = {0};
+					if (barrelIndex == 0)
 					{
-						if (!bullets[i].active)
-						{
-							bullets[i].active = true;
-							bullets[i].lifeTime = BULLET_LIFETIME;
-							if (barrelIndex == 0)
-							{
-								Vector3 firePoint = Vector3Scale(playerShip.forward, 5);
-								firePoint = Vector3Add(Vector3Scale(playerShip.right, -2), firePoint);
-								bullets[i].position = Vector3Add(playerShip.position, firePoint);
-								barrelIndex = 1;
-							}
-							else
-							{
-								Vector3 firePoint = Vector3Scale(playerShip.forward, 5);
-								firePoint = Vector3Add(Vector3Scale(playerShip.right, 2), firePoint);
-								bullets[i].position = Vector3Add(playerShip.position, firePoint);
-								barrelIndex = 0;
-							}
-							bullets[i].velocity = Vector3Scale(playerShip.forward, playerShip.speed + muzzleVelocity);
-							timeSinceLastShot = 0;
-							PlaySound(sfx_shoot);
-							break;
-						}
+						Vector3 firePoint = Vector3Scale(playerShip.forward, 5);
+						firePoint = Vector3Add(Vector3Scale(playerShip.right, -2), firePoint);
+						bulletPosition = Vector3Add(playerShip.position, firePoint);
+						barrelIndex = 1;
 					}
+					else
+					{
+						Vector3 firePoint = Vector3Scale(playerShip.forward, 5);
+						firePoint = Vector3Add(Vector3Scale(playerShip.right, 2), firePoint);
+						bulletPosition = Vector3Add(playerShip.position, firePoint);
+						barrelIndex = 0;
+					}
+					Vector3 bulletVelocity = Vector3Scale(playerShip.forward, playerShip.speed + muzzleVelocity);
+					timeSinceLastShot = 0;
+					PlaySound(sfx_shoot);
+					float playerBulletLifetime = 1;
+					BulletsFire(&world, bulletPosition, bulletVelocity, playerBulletLifetime);
+					break;
 				}
 
 				for (int i = 0; i < MAX_ENEMIES; i++)
 				{
-					if (enemyShips[i].isActive == false)
+					if (world.enemyShips[i].isActive == false)
 						continue;
 
-					EnemyControllerUpdate(&enemyControllers[i], &enemyShips[i], deltaTime);
-					ShipUpdate(&enemyShips[i], enemyControllers[i].input, deltaTime);
+					EnemyControllerUpdate(&world.enemyControllers[i], &world.enemyShips[i], deltaTime);
+					ShipUpdate(&world.enemyShips[i], world.enemyControllers[i].input, deltaTime);
 
 					// Enemy ships don't have a way to steer smartly so just constrain them to the world.
-					Ship* e = &enemyShips[i];
+					Ship* e = &world.enemyShips[i];
 					if (e->position.x > 500) e->position.x = 500;
 					if (e->position.x < -500) e->position.x = -500;
 					if (e->position.y > 200) e->position.y = 200;
@@ -300,50 +250,12 @@ int main()
 					if (e->position.z < -500) e->position.z = -500;
 				}
 
-				// Update weapons (bullet movement)
-				for (int i = 0; i < MAX_BULLETS; i++)
-				{
-					if (bullets[i].active)
-					{
-						Vector3 bulletDelta = Vector3Scale(bullets[i].velocity, deltaTime);
-						bullets[i].position = Vector3Add(bullets[i].position, bulletDelta);
-						bullets[i].lifeTime -= deltaTime;
-						bullets[i].active = bullets[i].lifeTime > 0 && bullets[i].position.y > 0;
-
-						for (int b = 0; b < MAX_BUILDINGS; b++)
-						{
-							if (!buildings[b].active)
-								continue;
-
-							if (CheckCollisionBoxSphere(buildings[b].bounds, bullets[i].position, 1))
-							{
-								buildings[b].active = false;
-								bullets[i].active = false;
-								targetsDestroyed += 1;
-								PlaySound(sfx_explode);
-								break;
-							}
-						}
-
-						for (int e = 0; e < MAX_ENEMIES; e++)
-						{
-							if (!enemyShips[e].isActive)
-								continue;
-
-							if (CheckCollisionBoxSphere(enemyShips[e].bounds, bullets[i].position, 1))
-							{
-								enemyShips[e].isActive = false;
-								bullets[i].active = false;
-								targetsDestroyed += 1;
-								PlaySound(sfx_explode);
-								break;
-							}
-						}
-					}
-				}
+				bool wasSomethingExplodedThisFrame = BulletsUpdate(&world, deltaTime);
+				if (wasSomethingExplodedThisFrame)
+					PlaySound(sfx_explode);
 
 				// Check win condition.
-				if (targetsDestroyed >= MAX_BUILDINGS + MAX_ENEMIES)
+				if (world.targetsDestroyed >= MAX_BUILDINGS + MAX_ENEMIES)
 				{
 					currentScreen = ENDING;
 					StopMusicStream(bgm);
@@ -389,34 +301,23 @@ int main()
 					// Draw buildings.
 					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
-						if (!buildings[i].active)
+						if (!world.buildings[i].active)
 							continue;
 
-						DrawCube(buildings[i].position, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BUILDING_SIZE * 2, (Color) { 80, 80, 80, 255 });
-						DrawCubeWires(buildings[i].position, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BLACK);
+						DrawCube(world.buildings[i].position, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BUILDING_SIZE * 2, (Color) { 80, 80, 80, 255 });
+						DrawCubeWires(world.buildings[i].position, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BUILDING_SIZE * 2, BLACK);
 					}
 
 					// Draw enemies.
 					for (int i = 0; i < MAX_ENEMIES; i++)
 					{
-						if (!enemyShips[i].isActive)
+						if (!world.enemyShips[i].isActive)
 							continue;
 
-						ShipDraw(&enemyShips[i], &mdl_ship, RED);
+						ShipDraw(&world.enemyShips[i], &mdl_ship, RED);
 					}
 
-					// Draw bullets.
-					for (int i = 0; i < MAX_BULLETS; i++)
-					{
-						if (!bullets[i].active)
-							continue;
-						DrawCube(
-							bullets[i].position,
-							1.5, 1.5, 1.5,
-							YELLOW);
-					}
-
-					// Draw the plane.
+					BulletsDraw();
 					ShipDraw(&playerShip, &mdl_ship, WHITE);
 
 				} EndMode3D();
@@ -425,25 +326,25 @@ int main()
 				Vector3 cameraForward = Vector3Subtract(camera.target, camera.position);
 				for (int i = 0; i < MAX_BUILDINGS; i++)
 				{
-					Vector3 cameraToBuilding = Vector3Subtract(buildings[i].position, camera.position);
+					Vector3 cameraToBuilding = Vector3Subtract(world.buildings[i].position, camera.position);
 					if (Vector3DotProduct(cameraForward, cameraToBuilding) < 0)
 						continue;
 
-					Vector2 buildingScreenPos = GetWorldToScreen(buildings[i].position, camera);
+					Vector2 buildingScreenPos = GetWorldToScreen(world.buildings[i].position, camera);
 					DrawText(TextFormat("%d", i), (int)buildingScreenPos.x, (int)buildingScreenPos.y, 10, MAGENTA);
 				}
 
 				for (int i = 0; i < MAX_ENEMIES; i++)
 				{
-					if (enemyShips[i].isActive == false)
+					if (world.enemyShips[i].isActive == false)
 						continue;
 
-					Vector3 cameraToEnemy = Vector3Subtract(enemyShips[i].position, camera.position);
+					Vector3 cameraToEnemy = Vector3Subtract(world.enemyShips[i].position, camera.position);
 					if (Vector3DotProduct(cameraForward, cameraToEnemy) < 0)
 						continue;
 
-					Vector2 screenPos = GetWorldToScreen(enemyShips[i].position, camera);
-					DrawText(TextFormat("%d", (int)enemyShips[i].position.y), (int)screenPos.x, (int)screenPos.y, 10, MAGENTA);
+					Vector2 screenPos = GetWorldToScreen(world.enemyShips[i].position, camera);
+					DrawText(TextFormat("%d", (int)world.enemyShips[i].position.y), (int)screenPos.x, (int)screenPos.y, 10, MAGENTA);
 				}
 
 				// Crosshairs
@@ -464,7 +365,7 @@ int main()
 				}
 				else
 				{
-					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", targetsDestroyed), ScreenWidth / 2, 100, 40, ORANGE);
+					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", world.targetsDestroyed), ScreenWidth / 2, 100, 40, ORANGE);
 				}
 
 				BeginBlendMode(BLEND_ADDITIVE);

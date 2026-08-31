@@ -3,8 +3,6 @@
 #include <raymath.h>
 #include "smoothdamp.h"
 
-#include <stdio.h>
-
 ShipInput ShipInputNormalize(ShipInput input)
 {
 	input.pitch = Clamp(input.pitch, -1, 1);
