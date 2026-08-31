@@ -1,6 +1,7 @@
 #pragma once
 
 #include <raylib.h>
+#include <stdbool.h>
 
 #include "ship.h"
 #include "bullets.h"
@@ -19,6 +20,7 @@ typedef struct WorldState
 {
 	Building buildings[MAX_BUILDINGS];
 	EnemyController enemyControllers[MAX_ENEMIES];
+	Ship playerShip;
 	Ship enemyShips[MAX_ENEMIES];
 	Projectile bullets[MAX_BULLETS];
 	int targetsDestroyed;

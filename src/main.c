@@ -73,14 +73,12 @@ int main()
 		.muzzleVelocity = 800,
 	};
 
-	Vector3 startPosition = {0, 100, 0};
-
-	Ship playerShip = ShipInit(playerShipHandling, playerShipWeapons);
-	playerShip.position = startPosition;
+	Vector3 playerStartPosition = {0, 100, 0};
 
 	// =======================================
-	// Enemies init
+	// World declare
 	// =======================================
+
 	WorldState world = {0};
 	// =======================================
 	// Weapons init
@@ -120,8 +118,8 @@ int main()
 			{
 				if (IsKeyPressed(KEY_ENTER))
 				{
-					playerShip = ShipInit(playerShipHandling, playerShipWeapons);
-					playerShip.position = startPosition;
+					world.playerShip = ShipInit(playerShipHandling, playerShipWeapons);
+					world.playerShip.position = playerStartPosition;
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
@@ -193,17 +191,17 @@ int main()
 				}
 				input.isFiring = IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0);
 
-				ShipUpdate(&playerShip, input, deltaTime);
+				ShipUpdate(&world.playerShip, input, deltaTime);
 
 				// Position chase camera.
-				Vector3 camPos = playerShip.position;
-				camPos = Vector3Add(camPos, Vector3Scale(playerShip.forward, -40));
-				camPos = Vector3Add(camPos, Vector3Scale(playerShip.up, 10));
+				Vector3 camPos = world.playerShip.position;
+				camPos = Vector3Add(camPos, Vector3Scale(world.playerShip.forward, -40));
+				camPos = Vector3Add(camPos, Vector3Scale(world.playerShip.up, 10));
 
 				// Apply to the raylib camera.
 				camera.position = Vector3SmoothDamp(camera.position, camPos, 10, deltaTime);
-				camera.target = Vector3Add(playerShip.position, Vector3Scale(playerShip.forward, 225));
-				camera.up = playerShip.up;
+				camera.target = Vector3Add(world.playerShip.position, Vector3Scale(world.playerShip.forward, 225));
+				camera.up = world.playerShip.up;
 
 				// Update weapons (firing)
 				timeSinceLastShot += deltaTime;
@@ -212,19 +210,19 @@ int main()
 					Vector3 bulletPosition = {0};
 					if (barrelIndex == 0)
 					{
-						Vector3 firePoint = Vector3Scale(playerShip.forward, 5);
-						firePoint = Vector3Add(Vector3Scale(playerShip.right, -2), firePoint);
-						bulletPosition = Vector3Add(playerShip.position, firePoint);
+						Vector3 firePoint = Vector3Scale(world.playerShip.forward, 5);
+						firePoint = Vector3Add(Vector3Scale(world.playerShip.right, -2), firePoint);
+						bulletPosition = Vector3Add(world.playerShip.position, firePoint);
 						barrelIndex = 1;
 					}
 					else
 					{
-						Vector3 firePoint = Vector3Scale(playerShip.forward, 5);
-						firePoint = Vector3Add(Vector3Scale(playerShip.right, 2), firePoint);
-						bulletPosition = Vector3Add(playerShip.position, firePoint);
+						Vector3 firePoint = Vector3Scale(world.playerShip.forward, 5);
+						firePoint = Vector3Add(Vector3Scale(world.playerShip.right, 2), firePoint);
+						bulletPosition = Vector3Add(world.playerShip.position, firePoint);
 						barrelIndex = 0;
 					}
-					Vector3 bulletVelocity = Vector3Scale(playerShip.forward, playerShip.speed + muzzleVelocity);
+					Vector3 bulletVelocity = Vector3Scale(world.playerShip.forward, world.playerShip.speed + muzzleVelocity);
 					timeSinceLastShot = 0;
 					PlaySound(sfx_shoot);
 					float playerBulletLifetime = 1;
@@ -318,7 +316,7 @@ int main()
 					}
 
 					BulletsDraw(&world);
-					ShipDraw(&playerShip, &mdl_ship, WHITE);
+					ShipDraw(&world.playerShip, &mdl_ship, WHITE);
 
 				} EndMode3D();
 
@@ -348,11 +346,11 @@ int main()
 				}
 
 				// Crosshairs
-				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, playerShip.rotation);
-				Vector3 xhairPos = Vector3Add(playerShip.position, Vector3Scale(forward, 75));
+				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, world.playerShip.rotation);
+				Vector3 xhairPos = Vector3Add(world.playerShip.position, Vector3Scale(forward, 75));
 				Vector2 xhairScreenPos = GetWorldToScreen(xhairPos, camera);
 				DrawCrosshair(xhairScreenPos, 40);
-				xhairPos = Vector3Add(playerShip.position, Vector3Scale(forward, 225));
+				xhairPos = Vector3Add(world.playerShip.position, Vector3Scale(forward, 225));
 				xhairScreenPos = GetWorldToScreen(xhairPos, camera);
 				DrawCrosshair(xhairScreenPos, 13);
 

@@ -26,7 +26,6 @@ void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float ti
 			break;
 		}
 	}
-
 }
 
 bool BulletsUpdate(WorldState* world, float deltaTime)
