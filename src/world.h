@@ -9,9 +9,6 @@
 #define MAX_BUILDINGS 15
 #define MAX_ENEMIES 10
 
-typedef struct Ship Ship;
-typedef struct EnemyController EnemyController;
-
 typedef struct Building {
 	Vector3 position;
 	BoundingBox bounds;

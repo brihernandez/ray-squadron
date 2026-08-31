@@ -317,7 +317,7 @@ int main()
 						ShipDraw(&world.enemyShips[i], &mdl_ship, RED);
 					}
 
-					BulletsDraw();
+					BulletsDraw(&world);
 					ShipDraw(&playerShip, &mdl_ship, WHITE);
 
 				} EndMode3D();

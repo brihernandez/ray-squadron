@@ -1,30 +1,28 @@
 #include "bullets.h"
+#include "world.h"
 
 #include <raymath.h>
 
-#define MAX_BULLETS 100
-Projectile bullets[MAX_BULLETS] = {0};
-
-void BulletsInit()
+void BulletsInit(WorldState* world)
 {
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
-		bullets[i].isActive = false;
+		world->bullets[i].isActive = false;
 	}
 }
 
-void BulletsFire(Vector3 position, Vector3 velocity, float timeToLive)
+void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float timeToLive)
 {
 	// Find first inactive bullet and use it to spawn.
 	// This whole thing can be done much better.
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
-		if (!bullets[i].isActive)
+		if (!world->bullets[i].isActive)
 		{
-			bullets[i].isActive = true;
-			bullets[i].lifeTime = timeToLive;
-			bullets[i].position = position;
-			bullets[i].velocity = velocity;
+			world->bullets[i].isActive = true;
+			world->bullets[i].lifeTime = timeToLive;
+			world->bullets[i].position = position;
+			world->bullets[i].velocity = velocity;
 			break;
 		}
 	}
@@ -36,22 +34,23 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 	bool explodedSomething = false;
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
-		if (bullets[i].isActive)
+		if (world->bullets[i].isActive)
 		{
-			Vector3 bulletDelta = Vector3Scale(bullets[i].velocity, deltaTime);
-			bullets[i].position = Vector3Add(bullets[i].position, bulletDelta);
-			bullets[i].lifeTime -= deltaTime;
-			bullets[i].isActive = bullets[i].lifeTime > 0 && bullets[i].position.y > 0;
+			Projectile* bul = &world->bullets[i];
+			Vector3 bulletDelta = Vector3Scale(bul->velocity, deltaTime);
+			bul->position = Vector3Add(bul->position, bulletDelta);
+			bul->lifeTime -= deltaTime;
+			bul->isActive = bul->lifeTime > 0 && bul->position.y > 0;
 
 			for (int b = 0; b < MAX_BUILDINGS; b++)
 			{
 				if (!world->buildings[b].active)
 					continue;
 
-				if (CheckCollisionBoxSphere(world->buildings[b].bounds, bullets[i].position, 1))
+				if (CheckCollisionBoxSphere(world->buildings[b].bounds, bul->position, 1))
 				{
 					world->buildings[b].active = false;
-					bullets[i].isActive = false;
+					bul->isActive = false;
 					world->targetsDestroyed += 1;
 					explodedSomething |= true;
 					break;
@@ -63,10 +62,10 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 				if (!world->enemyShips[e].isActive)
 					continue;
 
-				if (CheckCollisionBoxSphere(world->enemyShips[e].bounds, bullets[i].position, 1))
+				if (CheckCollisionBoxSphere(world->enemyShips[e].bounds, bul->position, 1))
 				{
 					world->enemyShips[e].isActive = false;
-					bullets[i].isActive = false;
+					bul->isActive = false;
 					world->targetsDestroyed += 1;
 					explodedSomething |= true;
 					break;
@@ -77,15 +76,15 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 	return explodedSomething;
 }
 
-void BulletsDraw()
+void BulletsDraw(WorldState* world)
 {
 	// Draw bullets.
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
-		if (!bullets[i].isActive)
+		if (!world->bullets[i].isActive)
 			continue;
 		DrawCube(
-			bullets[i].position,
+			world->bullets[i].position,
 			1.5, 1.5, 1.5,
 			YELLOW);
 	}

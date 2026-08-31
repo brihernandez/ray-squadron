@@ -15,4 +15,4 @@ typedef struct Projectile {
 void BulletsInit(struct WorldState* world);
 void BulletsFire(struct WorldState* world, Vector3 position, Vector3 velocity, float timeToLive);
 bool BulletsUpdate(struct WorldState* world, float deltaTime);
-void BulletsDraw();
+void BulletsDraw(struct WorldState* world);
