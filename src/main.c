@@ -80,6 +80,8 @@ int main()
 	// =======================================
 
 	WorldState world = {0};
+	WorldState worldSave = {0};
+
 	// =======================================
 	// Weapons init
 	// =======================================
@@ -159,6 +161,9 @@ int main()
 					currentScreen = GAMEPLAY;
 					world.targetsDestroyed = 0;
 
+					// Create a quicksave at the start of the level.
+					worldSave = world;
+
 					PlaySound(sfx_confirm);
 				}
 				break;
@@ -166,6 +171,12 @@ int main()
 			case GAMEPLAY:
 			{
 				float deltaTime = GetFrameTime();
+
+				// Quicksaving
+				if (IsKeyPressed(KEY_F5))
+					worldSave = world;
+				if (IsKeyPressed(KEY_F9))
+					world = worldSave;
 
 				// Rotate
 				ShipInput input = {0};
