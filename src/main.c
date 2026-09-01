@@ -200,7 +200,16 @@ int main()
 				if (IsKeyDown(KEY_E)) {
 					input.roll += 1;
 				}
+
+				int gamepadIndex = 2;
+				input.pitch -= GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_Y);
+				float gamepadYaw = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_X);
+				float gamepadRoll = gamepadYaw * -0.2f;
+				input.yaw -= gamepadYaw;
+				input.roll -= gamepadRoll;
+
 				input.isFiring = IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0);
+				input.isFiring |= IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
 
 				ShipUpdate(&world.playerShip, input, deltaTime);
 
@@ -216,7 +225,7 @@ int main()
 
 				// Update weapons (firing)
 				timeSinceLastShot += deltaTime;
-				if ((IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0)) && timeSinceLastShot >= fireDelay)
+				if (input.isFiring && timeSinceLastShot >= fireDelay)
 				{
 					Vector3 bulletPosition = {0};
 					if (barrelIndex == 0)
