@@ -262,7 +262,6 @@ int main()
 					PlaySound(sfx_shoot);
 					float playerBulletLifetime = 1;
 					BulletsFire(&world, bulletPosition, bulletVelocity, playerBulletLifetime);
-					break;
 				}
 
 				for (int i = 0; i < MAX_ENEMIES; i++)
