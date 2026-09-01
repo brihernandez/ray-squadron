@@ -102,6 +102,8 @@ int main()
 	// =======================================
 
 	GameScreen currentScreen = TITLE;
+	float timeSinceQuickSave = 999.f;
+	float timeSinceQuickLoad = 999.f;
 
 	while (!WindowShouldClose())
 	{
@@ -172,11 +174,19 @@ int main()
 			{
 				float deltaTime = GetFrameTime();
 
-				// Quicksaving
+				// Quicksaving and loading.
+				timeSinceQuickLoad += deltaTime;
+				timeSinceQuickSave += deltaTime;
 				if (IsKeyPressed(KEY_F5))
+				{
 					worldSave = world;
+					timeSinceQuickSave = 0.f;
+				}
 				if (IsKeyPressed(KEY_F9))
+				{
 					world = worldSave;
+					timeSinceQuickLoad = 0.f;
+				}
 
 				// Rotate
 				ShipInput input = {0};
@@ -384,6 +394,26 @@ int main()
 				else
 				{
 					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", world.targetsDestroyed), ScreenWidth / 2, 100, 40, ORANGE);
+
+					BeginBlendMode(BLEND_ADDITIVE);
+
+					float fadeTime = 1.5f;
+					if (timeSinceQuickLoad < timeSinceQuickSave && timeSinceQuickLoad < fadeTime)
+					{
+						float lerp = Normalize(timeSinceQuickLoad, 0, fadeTime);
+						lerp = Clamp(lerp, 0, fadeTime);
+						Color col = ColorLerp(ORANGE, BLACK, lerp);
+						DrawTextCentered("Quick Loaded", ScreenWidth / 2, ScreenHeight - 120, 20, col);
+					}
+					else if (timeSinceQuickSave < fadeTime)
+					{
+						float lerp = Normalize(timeSinceQuickSave, 0, fadeTime);
+						lerp = Clamp(lerp, 0, fadeTime);
+						Color col = ColorLerp(ORANGE, BLACK, lerp);
+						DrawTextCentered("Quick Saved", ScreenWidth / 2, ScreenHeight - 120, 20, col);
+					}
+
+					EndBlendMode();
 				}
 
 				BeginBlendMode(BLEND_ADDITIVE);
