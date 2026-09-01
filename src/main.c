@@ -233,6 +233,11 @@ int main()
 				camera.target = Vector3Add(world.playerShip.position, Vector3Scale(world.playerShip.forward, 225));
 				camera.up = world.playerShip.up;
 
+				// Update weapons (bullets)
+				bool wasSomethingExplodedThisFrame = BulletsUpdate(&world, deltaTime);
+				if (wasSomethingExplodedThisFrame)
+					PlaySound(sfx_explode);
+
 				// Update weapons (firing)
 				timeSinceLastShot += deltaTime;
 				if (input.isFiring && timeSinceLastShot >= fireDelay)
@@ -277,10 +282,6 @@ int main()
 					if (e->position.z > 500) e->position.z = 500;
 					if (e->position.z < -500) e->position.z = -500;
 				}
-
-				bool wasSomethingExplodedThisFrame = BulletsUpdate(&world, deltaTime);
-				if (wasSomethingExplodedThisFrame)
-					PlaySound(sfx_explode);
 
 				// Check win condition.
 				if (world.targetsDestroyed >= MAX_BUILDINGS + MAX_ENEMIES)
