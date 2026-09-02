@@ -32,6 +32,30 @@ void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation);
 void DrawGridColored(int slices, float spacing, Color color);
 
+void DrawAnimatedBillboard(
+	Camera camera,
+	Texture2D texture,
+	int rows, int columns,
+	Vector3 position, float size,
+	double time, float fps,
+	Color color)
+{
+	float frameWidth = (float)texture.width / columns;
+	float frameHeight = (float)texture.height / rows;
+	int frameCount = columns * rows;
+
+	int currentFrame = (int)(time * fps) % frameCount;
+	Rectangle rec = {
+		.x = (currentFrame % columns) * frameWidth,
+		.y = (currentFrame / rows) * frameHeight,
+		.width = frameWidth,
+		.height = frameHeight,
+	};
+
+	Vector2 quadSize = {size, size};
+	DrawBillboardRec(camera, texture, rec, position, quadSize, color);
+}
+
 int main()
 {
 	// Tell the window to use vsync and work on high DPI displays
@@ -43,12 +67,13 @@ int main()
 	InitWindow(ScreenWidth, ScreenHeight, "Ray Squadron");
 	InitAudioDevice();
 
-	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
+	// Utility function from resource_dir.h to find the resources folder and set it as the
+	// current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
 	Music bgm = LoadMusicStream("realtrees.ogg");
 	bgm.looping = true;
-	PlayMusicStream(bgm);
+	//PlayMusicStream(bgm);
 
 	Sound sfx_confirm = LoadSound("confirm.ogg");
 	Sound sfx_shoot = LoadSound("shoot.ogg");
@@ -56,6 +81,7 @@ int main()
 	Sound sfx_win = LoadSound("win.ogg");
 
 	Model mdl_ship = LoadModel("ship.glb");
+	Texture tex_expl = LoadTexture("explosion.png");
 
 	// =======================================
 	// Player init
@@ -348,6 +374,16 @@ int main()
 					BulletsDraw(&world);
 					ShipDraw(&world.playerShip, &mdl_ship, WHITE);
 
+					DrawAnimatedBillboard(
+						camera,
+						tex_expl,
+						4, 4,
+						(Vector3){0, 100, 200},
+						50,
+						GetTime(),
+						12,
+						WHITE);
+
 				} EndMode3D();
 
 				// HUD
@@ -423,10 +459,6 @@ int main()
 			}
 		} EndDrawing();
 	}
-
-	// cleanup
-	// unload our texture so it can be cleaned up
-	//UnloadTexture(wabbit);
 
 	CloseAudioDevice();
 	CloseWindow();
