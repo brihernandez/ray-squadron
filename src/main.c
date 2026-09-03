@@ -36,6 +36,7 @@ static float GetRandomFloat(float min, float max)
 
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
+void DrawText3D(Camera camera, Vector3 position, const char* text, Color color);
 Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation);
 void DrawGridColored(int slices, float spacing, Color color);
 
@@ -411,29 +412,10 @@ int main()
 				} EndMode3D();
 
 				// HUD
-				Vector3 cameraForward = Vector3Subtract(camera.target, camera.position);
-				for (int i = 0; i < MAX_BUILDINGS; i++)
-				{
-					Vector3 cameraToBuilding = Vector3Subtract(world.buildings[i].position, camera.position);
-					if (Vector3DotProduct(cameraForward, cameraToBuilding) < 0)
-						continue;
-
-					Vector2 buildingScreenPos = GetWorldToScreen(world.buildings[i].position, camera);
-					DrawText(TextFormat("%d", i), (int)buildingScreenPos.x, (int)buildingScreenPos.y, 10, MAGENTA);
-				}
-
-				for (int i = 0; i < MAX_ENEMIES; i++)
-				{
-					if (world.enemyShips[i].isActive == false)
-						continue;
-
-					Vector3 cameraToEnemy = Vector3Subtract(world.enemyShips[i].position, camera.position);
-					if (Vector3DotProduct(cameraForward, cameraToEnemy) < 0)
-						continue;
-
-					Vector2 screenPos = GetWorldToScreen(world.enemyShips[i].position, camera);
-					DrawText(TextFormat("%d", (int)world.enemyShips[i].position.y), (int)screenPos.x, (int)screenPos.y, 10, MAGENTA);
-				}
+				//for (int i = 0; i < MAX_BUILDINGS; i++)
+				//	DrawText3D(camera, world.buildings[i].position, TextFormat("%d", i), MAGENTA);
+				//for (int i = 0; i < MAX_ENEMIES; i++)
+				//	DrawText3D(camera, world.enemyShips[i].position, TextFormat("%d", (int)world.enemyShips[i].position.y), MAGENTA);
 
 				// Crosshairs
 				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, world.playerShip.rotation);
@@ -508,6 +490,17 @@ void DrawTextCentered(const char* message, int x, int y, int size, Color color)
 	x -= MeasureText(message, size) / 2;
 	y -= size / 2;
 	DrawText(message, x, y, size, color);
+}
+
+void DrawText3D(Camera camera, Vector3 position, const char* text, Color color)
+{
+	Vector3 cameraForward = Vector3Subtract(camera.target, camera.position);
+	Vector3 cameraToPosition = Vector3Subtract(position, camera.position);
+	if (Vector3DotProduct(cameraForward, cameraToPosition) < 0)
+		return;
+
+	Vector2 screenPos = GetWorldToScreen(position, camera);
+	DrawText(text, (int)screenPos.x, (int)screenPos.y, 10, color);
 }
 
 Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation)
