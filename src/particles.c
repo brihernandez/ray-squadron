@@ -9,6 +9,7 @@ static Particle particles[MAX_PARTICLES] = {0};
 static int nextParticleIndex = 0;
 
 static const Vector3 gravity = {0, -10, 0};
+static const float lineLength = 1.f / 30.f;
 
 void ParticlesEmit(Particle* template)
 {
@@ -57,11 +58,11 @@ void ParticlesDraw()
 				// Trailing line
 				DrawLine3D(
 					p->position,
-					Vector3Subtract(p->position, Vector3Scale(p->velocity, 1.f / 30.f)),
+					Vector3Subtract(p->position, Vector3Scale(p->velocity, lineLength)),
 					p->color);
 				// Leading line
 				//DrawLine3D(
-				//	Vector3Add(p->position, Vector3Scale(p->velocity, 1.f / 30.f)),
+				//	Vector3Add(p->position, Vector3Scale(p->velocity, lineLength)),
 				//	p->position,
 				//	p->color);
 				break;
