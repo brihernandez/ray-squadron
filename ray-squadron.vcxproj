@@ -304,12 +304,14 @@
     <ClInclude Include="include\resource_dir.h" />
     <ClInclude Include="include\smoothdamp.h" />
     <ClInclude Include="src\bullets.h" />
+    <ClInclude Include="src\particles.h" />
     <ClInclude Include="src\ship.h" />
     <ClInclude Include="src\world.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bullets.c" />
     <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\particles.c" />
     <ClCompile Include="src\ship.c" />
   </ItemGroup>
   <ItemGroup>

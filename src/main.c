@@ -7,16 +7,16 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 
 */
 
-#include "raylib.h"
-#include "raymath.h"
-#include "rlgl.h"
-
-#include "resource_dir.h"	// utility header for SearchAndSetResourceDir
+#include <raylib.h>
+#include <raymath.h>
+#include <rlgl.h>
 
 #include "world.h"
 #include "ship.h"
 #include "bullets.h"
+#include "particles.h"
 
+#include "resource_dir.h"
 #include "smoothdamp.h"
 
 #define BUILDING_SIZE 20
@@ -26,6 +26,13 @@ typedef enum GameScreen {
 	GAMEPLAY,
 	ENDING,
 } GameScreen;
+
+static float GetRandomFloat(float min, float max)
+{
+	float val = (float)GetRandomValue(0, 1000);
+	val /= 1000.f;
+	return Lerp(min, max, val);
+}
 
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
@@ -308,6 +315,20 @@ int main()
 					if (e->position.z < -500) e->position.z = -500;
 				}
 
+				Particle p = {
+					.position = {0, 100, 100},
+					.velocity = {GetRandomFloat(-300, 300), GetRandomFloat(50, 150), GetRandomFloat(-300, 300)},
+					.color = WHITE,
+					.gravity = 8.f,
+					.drag = 1.f,
+					.size = 1.0f,
+					.timeToLive = 3.f,
+					.type = PARTICLE_CUBE,
+				};
+				EmitParticle(&p);
+
+				UpdateParticles(deltaTime);
+
 				// Check win condition.
 				if (world.targetsDestroyed >= MAX_BUILDINGS + MAX_ENEMIES)
 				{
@@ -374,15 +395,17 @@ int main()
 					BulletsDraw(&world);
 					ShipDraw(&world.playerShip, &mdl_ship, WHITE);
 
-					DrawAnimatedBillboard(
-						camera,
-						tex_expl,
-						4, 4,
-						(Vector3){0, 100, 200},
-						50,
-						GetTime(),
-						12,
-						WHITE);
+					//DrawAnimatedBillboard(
+					//	camera,
+					//	tex_expl,
+					//	4, 4,
+					//	(Vector3){0, 100, 200},
+					//	50,
+					//	GetTime(),
+					//	12,
+					//	WHITE);
+
+					DrawParticles();
 
 				} EndMode3D();
 
