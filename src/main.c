@@ -219,6 +219,7 @@ int main()
 				{
 					world = worldSave;
 					timeSinceQuickLoad = 0.f;
+					ParticlesClear();
 				}
 
 				// Rotate
@@ -325,9 +326,9 @@ int main()
 					.timeToLive = 3.f,
 					.type = PARTICLE_CUBE,
 				};
-				EmitParticle(&p);
+				ParticlesEmit(&p);
 
-				UpdateParticles(deltaTime);
+				ParticlesUpdate(deltaTime);
 
 				// Check win condition.
 				if (world.targetsDestroyed >= MAX_BUILDINGS + MAX_ENEMIES)
@@ -405,7 +406,7 @@ int main()
 					//	12,
 					//	WHITE);
 
-					DrawParticles();
+					ParticlesDraw();
 
 				} EndMode3D();
 

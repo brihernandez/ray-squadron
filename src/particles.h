@@ -23,6 +23,7 @@ typedef struct Particle
 	enum ParticleType type;
 } Particle;
 
-void EmitParticle(Particle* template);
-void UpdateParticles(float deltaTime);
-void DrawParticles();
+void ParticlesEmit(Particle* template);
+void ParticlesClear();
+void ParticlesUpdate(float deltaTime);
+void ParticlesDraw();

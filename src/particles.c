@@ -3,12 +3,14 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#include <string.h>
+
 static Particle particles[MAX_PARTICLES] = {0};
 static int nextParticleIndex = 0;
 
 static const Vector3 gravity = {0, -10, 0};
 
-void EmitParticle(Particle* template)
+void ParticlesEmit(Particle* template)
 {
 	// It's not an error per se, but if the game runs out of particles, it should be logged because
 	// it means a particle somewhere is being overwritten and that can look bad.
@@ -20,7 +22,13 @@ void EmitParticle(Particle* template)
 	nextParticleIndex = (nextParticleIndex + 1) % MAX_PARTICLES;
 }
 
-void UpdateParticles(float deltaTime)
+void ParticlesClear()
+{
+	for (int i = 0; i < MAX_PARTICLES; i++)
+		memset(&particles[i], 0, sizeof(Particle));
+}
+
+void ParticlesUpdate(float deltaTime)
 {
 	for (int i = 0; i < MAX_PARTICLES; i++)
 	{
@@ -35,7 +43,7 @@ void UpdateParticles(float deltaTime)
 	}
 }
 
-void DrawParticles()
+void ParticlesDraw()
 {
 	for (int i = 0; i < MAX_PARTICLES; i++)
 	{
