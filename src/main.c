@@ -423,6 +423,8 @@ int main()
 				}
 				else
 				{
+					const int shadowOffset = 2;
+					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", world.targetsDestroyed), ScreenWidth / 2 + shadowOffset, 100 + shadowOffset, 40, BLACK);
 					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", world.targetsDestroyed), ScreenWidth / 2, 100, 40, ORANGE);
 
 					BeginBlendMode(BLEND_ADDITIVE);
