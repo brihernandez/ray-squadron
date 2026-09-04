@@ -36,6 +36,11 @@ void ParticlesUpdate(float deltaTime)
 		Particle* p = &particles[i];
 		if (p->timeToLive <= 0)
 			continue;
+		if (p->position.y <= 0)
+		{
+			p->timeToLive = 0;
+			continue;
+		}
 
 		p->velocity = Vector3Add(p->velocity, Vector3Scale(gravity, p->gravity * deltaTime));
 		p->velocity = Vector3Add(p->velocity, Vector3Scale(p->velocity, -p->drag * deltaTime));

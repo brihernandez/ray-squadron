@@ -317,18 +317,6 @@ int main()
 					if (e->position.z < -500) e->position.z = -500;
 				}
 
-				Particle p = {
-					.position = {0, 100, 100},
-					.velocity = {GetRandomFloat(-300, 300), GetRandomFloat(50, 150), GetRandomFloat(-300, 300)},
-					.color = WHITE,
-					.gravity = 8.f,
-					.drag = 1.f,
-					.size = 1.0f,
-					.timeToLive = 3.f,
-					.type = PARTICLE_CUBE,
-				};
-				ParticlesEmit(&p);
-
 				ParticlesUpdate(deltaTime);
 
 				// Check win condition.

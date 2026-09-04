@@ -1,5 +1,6 @@
 #include "bullets.h"
 #include "world.h"
+#include "particles.h"
 
 #include <raymath.h>
 
@@ -10,6 +11,56 @@ static int muzzleFlashCount = 0;
 #define IMPACT_SIZE 15
 static Vector3 impacts[MAX_BULLETS];
 static int impactCount = 0;
+
+static float GetRandomFloat(float min, float max)
+{
+	float val = (float)GetRandomValue(0, 1000);
+	val /= 1000.f;
+	return Lerp(min, max, val);
+}
+
+static void SpawnSparkParticles(Vector3 position, Vector3 inheritedVelocity)
+{
+	Particle p = {
+		.position = position,
+		.velocity = {0},
+		.color = YELLOW,
+		.gravity = 10,
+		.drag = 1,
+		.size = 5,
+		.timeToLive = 5,
+		.type = PARTICLE_LINE
+	};
+	for (int i = 0; i < 25; i++)
+	{
+		p.velocity.x = GetRandomFloat(-100, 100);
+		p.velocity.y = GetRandomFloat(0, 200);
+		p.velocity.z = GetRandomFloat(-100, 100);
+		p.velocity = Vector3Add(p.velocity, inheritedVelocity);
+		ParticlesEmit(&p);
+	}
+}
+
+static void SpawnExplosionParticles(Vector3 position)
+{
+	Particle p = {
+		.position = position,
+		.velocity = {0},
+		.color = GRAY,
+		.gravity = 10,
+		.drag = 1,
+		.size = 5,
+		.timeToLive = 5,
+		.type = PARTICLE_CUBE
+	};
+	for (int i = 0; i < 25; i++)
+	{
+		p.velocity.x = GetRandomFloat(-100, 100);
+		p.velocity.y = GetRandomFloat(25, 150);
+		p.velocity.z = GetRandomFloat(-100, 100);
+		ParticlesEmit(&p);
+	}
+}
 
 void BulletsInit(WorldState* world)
 {
@@ -77,6 +128,8 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 					bul->isActive = false;
 					world->targetsDestroyed += 1;
 
+					SpawnExplosionParticles(world->buildings[b].position);
+
 					impacts[impactCount] = bul->position;
 					impactCount += 1;
 					explodedSomething |= true;
@@ -95,6 +148,10 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 					world->enemyShips[e].isActive = false;
 					bul->isActive = false;
 					world->targetsDestroyed += 1;
+
+					SpawnSparkParticles(
+						world->enemyShips[e].position,
+						Vector3Scale(world->enemyShips[e].forward, world->enemyShips->speed));
 
 					impacts[impactCount] = bul->position;
 					impactCount += 1;

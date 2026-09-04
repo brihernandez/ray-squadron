@@ -4,12 +4,12 @@
 
 #define MAX_PARTICLES 1000
 
-enum ParticleType
+typedef enum ParticleType
 {
 	PARTICLE_LINE,
 	PARTICLE_POINT,
 	PARTICLE_CUBE,
-};
+} ParticleType;
 
 typedef struct Particle
 {
@@ -20,7 +20,7 @@ typedef struct Particle
 	float drag;
 	float size;
 	float timeToLive;
-	enum ParticleType type;
+	ParticleType type;
 } Particle;
 
 void ParticlesEmit(Particle* template);
