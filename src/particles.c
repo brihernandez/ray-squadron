@@ -18,15 +18,14 @@ void ParticlesEmit(Particle* template)
 	if (particles[nextParticleIndex].timeToLive > 0)
 		TraceLog(LOG_WARNING, "Newly emitted particle will overwrite currently active particle!");
 
-	Particle* p = &particles[nextParticleIndex];
-	*p = *template;
+	particles[nextParticleIndex] = *template;
 	nextParticleIndex = (nextParticleIndex + 1) % MAX_PARTICLES;
 }
 
 void ParticlesClear()
 {
-	for (int i = 0; i < MAX_PARTICLES; i++)
-		memset(&particles[i], 0, sizeof(Particle));
+	memset(particles, 0, sizeof(Particle) * MAX_PARTICLES);
+	nextParticleIndex = 0;
 }
 
 void ParticlesUpdate(float deltaTime)
