@@ -4,7 +4,7 @@
 
 #include <raymath.h>
 
-#define MUZZLE_FLASH_SIZE 3
+#define MUZZLE_FLASH_SIZE 6
 static Vector3 muzzleFlashes[MAX_BULLETS];
 static int muzzleFlashCount = 0;
 
@@ -168,8 +168,8 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 void BulletsDraw(WorldState* world)
 {
 	// Draw bullets.
-	static const float radius = 0.8f;
-	static const float length = 1.0f / 60.0f;
+	static const float radius = 2.f;
+	static const float length = 1.0f / 15.0f;
 	static const Color color = {255, 0, 0, 255};
 	BeginBlendMode(BLEND_ADDITIVE);
 	for (int i = 0; i < MAX_BULLETS; i++)

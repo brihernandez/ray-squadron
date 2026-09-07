@@ -70,6 +70,9 @@
     <None Include="resources\win.ogg">
       <Filter>Game Resource Files</Filter>
     </None>
+    <None Include="resources\turret.glb">
+      <Filter>Game Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\application.rc">

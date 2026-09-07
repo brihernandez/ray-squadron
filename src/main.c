@@ -19,6 +19,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "resource_dir.h"
 #include "smoothdamp.h"
 
+#define TURRET_COUNT 8
 #define BUILDING_SIZE 20
 
 typedef enum GameScreen {
@@ -39,6 +40,74 @@ void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 void DrawText3D(Camera camera, Vector3 position, const char* text, Color color);
 Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation);
 void DrawGridColored(int slices, float spacing, Color color);
+
+typedef struct Turret
+{
+	Vector3 position;
+	Quaternion rotation;
+	Vector3 targetPos;
+	float azimuth;
+	float elevation;
+	float fireDelay;
+	float fireCooldown;
+	float turnRate;
+} Turret;
+
+static void UpdateTurret(WorldState* world, Turret* turret, float deltaTime)
+{
+	turret->azimuth += 90 * DEG2RAD * GetFrameTime();
+	turret->elevation = (float)sin(GetTime() * 10) * 0.2f - 0.4f;
+
+	turret->fireCooldown -= deltaTime;
+	if (turret->fireCooldown <= 0)
+	{
+		Matrix worldMat = MatrixBuildTransform(
+			turret->position,
+			turret->rotation);
+
+		Matrix azimuthMat = MatrixBuildTransform(
+			(Vector3) { 0, 32, 0 },
+			QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, turret->azimuth));
+		Matrix worldAzimuthMat = MatrixMultiply(azimuthMat, worldMat);
+
+		Matrix elevationMat = MatrixBuildTransform(
+			(Vector3) { 0, 10, 0 },
+			QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, turret->elevation));
+		Matrix worldElevationMat = MatrixMultiply(elevationMat, worldAzimuthMat);
+
+		Vector3 firePosition = Vector3Transform((Vector3) { 0, 0, 25 }, worldElevationMat);
+
+		Vector3 muzzleVelocity = Vector3RotateByQuaternion(
+			(Vector3) { 0, 0, 400 },
+			QuaternionFromMatrix(worldElevationMat));
+
+		BulletsFire(world, firePosition, muzzleVelocity, 3);
+		turret->fireCooldown = turret->fireDelay;
+	}
+}
+
+static void DrawTurret(Model* model, Turret* turret)
+{
+	Material defaultMaterial = LoadMaterialDefault();
+
+	Matrix worldMat = MatrixBuildTransform(
+		turret->position,
+		turret->rotation);
+
+	Matrix azimuthMat = MatrixBuildTransform(
+		(Vector3){0, 32, 0},
+		QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, turret->azimuth));
+	Matrix worldAzimuthMat = MatrixMultiply(azimuthMat, worldMat);
+
+	Matrix elevationMat = MatrixBuildTransform(
+		(Vector3){0, 10, 0},
+		QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, turret->elevation));
+	Matrix worldElevationMat = MatrixMultiply(elevationMat, worldAzimuthMat);
+
+	DrawMesh(model->meshes[0], defaultMaterial, worldMat);
+	DrawMesh(model->meshes[1], defaultMaterial, worldAzimuthMat);
+	DrawMesh(model->meshes[2], defaultMaterial, worldElevationMat);
+}
 
 void DrawAnimatedBillboard(
 	Camera camera,
@@ -108,7 +177,7 @@ int main()
 		.muzzleVelocity = 800,
 	};
 
-	Vector3 playerStartPosition = {0, 100, 0};
+	Vector3 playerStartPosition = {0, 100, -1000};
 
 	// =======================================
 	// World declare
@@ -116,6 +185,24 @@ int main()
 
 	WorldState world = {0};
 	WorldState worldSave = {0};
+
+	Turret turretTemplate = {
+		.position = {0, 0, 500},
+		.rotation = QuaternionFromAxisAngle((Vector3){0, 1, 0}, 180 * DEG2RAD),
+		.targetPos = {0, 150, 0},
+		.azimuth = 0,
+		.elevation = 0,
+		.fireDelay = 0.5,
+		.fireCooldown = 0,
+		.turnRate = 1,
+	};
+	Turret turrets[TURRET_COUNT] = {0};
+	for (int i = 0; i < TURRET_COUNT; i++)
+	{
+		turrets[i] = turretTemplate;
+		turrets[i].fireCooldown = GetRandomFloat(0, turretTemplate.fireDelay);
+		turrets[i].azimuth = GetRandomFloat(0, 360 * DEG2RAD);
+	}
 
 	// =======================================
 	// Weapons init
@@ -188,6 +275,15 @@ int main()
 						Quaternion randomRotation = QuaternionFromEuler(0, GetRandomValue(0, 360) * DEG2RAD, 0);
 						world.enemyShips[i].rotation = randomRotation;
 						world.enemyControllers[i].targetAltitude = (float)GetRandomValue(100, 200);
+					}
+
+					for (int i = 0; i < TURRET_COUNT; i++)
+					{
+						turrets[i].position = (Vector3){
+							GetRandomFloat(-500, 500),
+							0,
+							GetRandomFloat(-500, 500),
+						};
 					}
 
 					BulletsInit(&world);
@@ -398,7 +494,11 @@ int main()
 
 					ParticlesDraw();
 
-					DrawModel(mdl_turret, (Vector3) { 0, 0, 500 }, 1, WHITE);
+					for (int i = 0; i < 8; i++)
+					{
+						UpdateTurret(&world, &turrets[i], GetFrameTime());
+						DrawTurret(&mdl_turret, &turrets[i]);
+					}
 
 				} EndMode3D();
 

@@ -54,6 +54,7 @@ void ShipUpdate(Ship* ship, ShipInput input, float deltaTime)
 	ship->rotation = QuaternionNormalize(ship->rotation);
 
 	// Ship translation.
+	if (!IsKeyDown(KEY_SPACE))
 	ship->position = Vector3Add(ship->position, Vector3Scale(ship->forward, ship->speed * deltaTime));
 	if (ship->position.y < 2)
 		ship->position.y = 2;
