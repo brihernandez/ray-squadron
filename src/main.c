@@ -22,6 +22,15 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define TURRET_COUNT 8
 #define BUILDING_SIZE 20
 
+const int RenderWidth = 800;
+const int RenderHeight = 600;
+bool isPointFiltered = false;
+
+void UpdateRenderFiltering(RenderTexture2D* rt, bool usePoint)
+{
+	SetTextureFilter(rt->texture, usePoint ? TEXTURE_FILTER_POINT : TEXTURE_FILTER_BILINEAR);
+}
+
 typedef enum GameScreen {
 	TITLE,
 	GAMEPLAY,
@@ -139,10 +148,13 @@ int main()
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_MSAA_4X_HINT);
 
 	// Create the window and OpenGL context
-	const int ScreenWidth = 800;
-	const int ScreenHeight = 600;
-	InitWindow(ScreenWidth, ScreenHeight, "Ray Squadron");
+	InitWindow(RenderWidth, RenderHeight, "Ray Squadron");
 	InitAudioDevice();
+
+	// Fixed res screen
+	RenderTexture2D target = LoadRenderTexture(RenderWidth, RenderHeight);
+	float renderRatio = (float)RenderWidth / (float)RenderHeight;
+	UpdateRenderFiltering(&target, isPointFiltered);
 
 	// Utility function from resource_dir.h to find the resources folder and set it as the
 	// current working directory so we can load from it
@@ -237,6 +249,12 @@ int main()
 
 		if (IsKeyPressed(KEY_F11))
 			ToggleFullscreen();
+
+		if (IsKeyPressed(KEY_F1))
+		{
+			isPointFiltered = !isPointFiltered;
+			UpdateRenderFiltering(&target, isPointFiltered);
+		}
 
 		switch (currentScreen) {
 			case TITLE:
@@ -432,13 +450,13 @@ int main()
 		// Render
 		// =======================================
 
-		BeginDrawing();
+		BeginTextureMode(target);
 		{
 			if (currentScreen == TITLE)
 			{
 				ClearBackground((Color) { 16, 32, 64, 255 });
-				DrawTextCentered("Destroy all targets!", ScreenWidth / 2, ScreenHeight / 2 - 30, 60, ORANGE);
-				DrawTextCentered("Press [ENTER] to start.", ScreenWidth / 2, ScreenHeight / 2 + 30, 20, ORANGE);
+				DrawTextCentered("Destroy all targets!", RenderWidth / 2, RenderHeight / 2 - 30, 60, ORANGE);
+				DrawTextCentered("Press [ENTER] to start.", RenderWidth / 2, RenderHeight / 2 + 30, 20, ORANGE);
 			}
 			else
 			{
@@ -511,24 +529,24 @@ int main()
 				// Crosshairs
 				Vector3 forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, world.playerShip.rotation);
 				Vector3 xhairPos = Vector3Add(world.playerShip.position, Vector3Scale(forward, 75));
-				Vector2 xhairScreenPos = GetWorldToScreen(xhairPos, camera);
+				Vector2 xhairScreenPos = GetWorldToScreenEx(xhairPos, camera, RenderWidth, RenderHeight);
 				DrawCrosshair(xhairScreenPos, 40);
 				xhairPos = Vector3Add(world.playerShip.position, Vector3Scale(forward, 225));
-				xhairScreenPos = GetWorldToScreen(xhairPos, camera);
+				xhairScreenPos = GetWorldToScreenEx(xhairPos, camera, RenderWidth, RenderHeight);
 				DrawCrosshair(xhairScreenPos, 13);
 
 				if (currentScreen == ENDING)
 				{
 					// Win message on completion
-					DrawRectangle(0, 0, ScreenWidth, ScreenHeight, Fade(BLACK, 0.8f));
-					DrawTextCentered("YOU BEAT THE GAME!", ScreenWidth / 2, ScreenHeight / 2 - 30, 60, ORANGE);
-					DrawTextCentered("Press [ENTER] to play again.", ScreenWidth / 2, ScreenHeight / 2 + 30, 20, ORANGE);
+					DrawRectangle(0, 0, RenderHeight, RenderWidth, Fade(BLACK, 0.8f));
+					DrawTextCentered("YOU BEAT THE GAME!", RenderHeight / 2, RenderWidth / 2 - 30, 60, ORANGE);
+					DrawTextCentered("Press [ENTER] to play again.", RenderHeight / 2, RenderWidth / 2 + 30, 20, ORANGE);
 				}
 				else
 				{
 					const int shadowOffset = 2;
-					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", world.targetsDestroyed), ScreenWidth / 2 + shadowOffset, 100 + shadowOffset, 40, BLACK);
-					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", world.targetsDestroyed), ScreenWidth / 2, 100, 40, ORANGE);
+					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", world.targetsDestroyed), RenderWidth / 2 + shadowOffset, 100 + shadowOffset, 40, BLACK);
+					DrawTextCentered(TextFormat("TARGETS DESTROYED: %d", world.targetsDestroyed), RenderWidth / 2, 100, 40, ORANGE);
 
 					BeginBlendMode(BLEND_ADDITIVE);
 
@@ -538,14 +556,14 @@ int main()
 						float lerp = Normalize(timeSinceQuickLoad, 0, fadeTime);
 						lerp = Clamp(lerp, 0, fadeTime);
 						Color col = ColorLerp(ORANGE, BLACK, lerp);
-						DrawTextCentered("Quick Loaded", ScreenWidth / 2, ScreenHeight - 120, 20, col);
+						DrawTextCentered("Quick Loaded", RenderHeight / 2, RenderWidth - 120, 20, col);
 					}
 					else if (timeSinceQuickSave < fadeTime)
 					{
 						float lerp = Normalize(timeSinceQuickSave, 0, fadeTime);
 						lerp = Clamp(lerp, 0, fadeTime);
 						Color col = ColorLerp(ORANGE, BLACK, lerp);
-						DrawTextCentered("Quick Saved", ScreenWidth / 2, ScreenHeight - 120, 20, col);
+						DrawTextCentered("Quick Saved", RenderHeight / 2, RenderWidth - 120, 20, col);
 					}
 
 					EndBlendMode();
@@ -556,7 +574,25 @@ int main()
 					DrawText(TextFormat("%d", GetFPS()), 10, 10, 10, GREEN);
 				} EndBlendMode();
 			}
-		} EndDrawing();
+		} EndTextureMode();
+
+		BeginDrawing();
+		{
+			ClearBackground(BLACK);
+			Rectangle sourceRec = {0, 0, target.texture.width, -target.texture.height};
+			float screenWidth = GetScreenWidth();
+			float screenHeight = GetScreenHeight();
+			float renderAspect = (float)RenderWidth / (float)RenderHeight;
+			float screenRecWidth = screenHeight * renderAspect;
+			Rectangle destRec = {0, 0, screenRecWidth, screenHeight};
+			DrawTexturePro(
+				target.texture,
+				sourceRec, destRec,
+				(Vector2) { (screenRecWidth - screenWidth) / 2, 0 },
+				0,
+				WHITE);
+		}
+		EndDrawing();
 	}
 
 	CloseAudioDevice();
@@ -592,7 +628,7 @@ void DrawText3D(Camera camera, Vector3 position, const char* text, Color color)
 	if (Vector3DotProduct(cameraForward, cameraToPosition) < 0)
 		return;
 
-	Vector2 screenPos = GetWorldToScreen(position, camera);
+	Vector2 screenPos = GetWorldToScreenEx(position, camera, RenderWidth, RenderHeight);
 	DrawText(text, (int)screenPos.x, (int)screenPos.y, 10, color);
 }
 
