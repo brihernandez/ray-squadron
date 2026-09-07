@@ -76,18 +76,18 @@ void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float ti
 	// This whole thing can be done much better.
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
-		if (!world->bullets[i].isActive)
-		{
-			world->bullets[i].isActive = true;
-			world->bullets[i].lifeTime = timeToLive;
-			world->bullets[i].position = position;
-			world->bullets[i].velocity = velocity;
+		if (world->bullets[i].isActive)
+			continue;
 
-			muzzleFlashes[muzzleFlashCount] = position;
-			muzzleFlashCount += 1;
+		world->bullets[i].isActive = true;
+		world->bullets[i].lifeTime = timeToLive;
+		world->bullets[i].position = position;
+		world->bullets[i].velocity = velocity;
 
-			break;
-		}
+		muzzleFlashes[muzzleFlashCount] = position;
+		muzzleFlashCount += 1;
+
+		break;
 	}
 }
 
@@ -99,66 +99,66 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 	bool explodedSomething = false;
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
-		if (world->bullets[i].isActive)
+		if (!world->bullets[i].isActive)
+			continue;
+
+		Projectile* bul = &world->bullets[i];
+		Vector3 bulletDelta = Vector3Scale(bul->velocity, deltaTime);
+		bul->position = Vector3Add(bul->position, bulletDelta);
+		bul->lifeTime -= deltaTime;
+		bul->isActive = bul->lifeTime > 0 && bul->position.y > 0;
+
+		if (bul->position.y <= 0)
 		{
-			Projectile* bul = &world->bullets[i];
-			Vector3 bulletDelta = Vector3Scale(bul->velocity, deltaTime);
-			bul->position = Vector3Add(bul->position, bulletDelta);
-			bul->lifeTime -= deltaTime;
-			bul->isActive = bul->lifeTime > 0 && bul->position.y > 0;
+			bul->isActive = false;
+			Vector3 groundClampedPos = bul->position;
+			groundClampedPos.y = 0;
+			impacts[impactCount] = groundClampedPos;
+			impactCount += 1;
+			continue;
+		}
 
-			if (bul->position.y <= 0)
-			{
-				bul->isActive = false;
-				Vector3 groundClampedPos = bul->position;
-				groundClampedPos.y = 0;
-				impacts[impactCount] = groundClampedPos;
-				impactCount += 1;
+		for (int b = 0; b < MAX_BUILDINGS; b++)
+		{
+			if (!world->buildings[b].active)
 				continue;
-			}
 
-			for (int b = 0; b < MAX_BUILDINGS; b++)
+			if (CheckCollisionBoxSphere(world->buildings[b].bounds, bul->position, 1))
 			{
-				if (!world->buildings[b].active)
-					continue;
+				world->buildings[b].active = false;
+				bul->isActive = false;
+				world->targetsDestroyed += 1;
 
-				if (CheckCollisionBoxSphere(world->buildings[b].bounds, bul->position, 1))
-				{
-					world->buildings[b].active = false;
-					bul->isActive = false;
-					world->targetsDestroyed += 1;
+				SpawnExplosionParticles(world->buildings[b].position);
 
-					SpawnExplosionParticles(world->buildings[b].position);
+				impacts[impactCount] = bul->position;
+				impactCount += 1;
+				explodedSomething |= true;
 
-					impacts[impactCount] = bul->position;
-					impactCount += 1;
-					explodedSomething |= true;
-
-					break;
-				}
+				break;
 			}
+		}
 
-			for (int e = 0; e < MAX_ENEMIES; e++)
+		for (int e = 0; e < MAX_ENEMIES; e++)
+		{
+			if (!world->enemyShips[e].isActive)
+				continue;
+
+			if (CheckCollisionBoxSphere(world->enemyShips[e].bounds, bul->position, 1))
 			{
-				if (!world->enemyShips[e].isActive)
-					continue;
+				world->enemyShips[e].isActive = false;
+				bul->isActive = false;
+				world->targetsDestroyed += 1;
 
-				if (CheckCollisionBoxSphere(world->enemyShips[e].bounds, bul->position, 1))
-				{
-					world->enemyShips[e].isActive = false;
-					bul->isActive = false;
-					world->targetsDestroyed += 1;
+				SpawnSparkParticles(
+					world->enemyShips[e].position,
+					Vector3Scale(world->enemyShips[e].forward, world->enemyShips->speed));
 
-					SpawnSparkParticles(
-						world->enemyShips[e].position,
-						Vector3Scale(world->enemyShips[e].forward, world->enemyShips->speed));
+				impacts[impactCount] = bul->position;
+				impactCount += 1;
+				explodedSomething |= true;
 
-					impacts[impactCount] = bul->position;
-					impactCount += 1;
-					explodedSomething |= true;
-
-					break;
-				}
+				break;
 			}
 		}
 	}
