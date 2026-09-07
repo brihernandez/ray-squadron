@@ -89,6 +89,7 @@ int main()
 	Sound sfx_win = LoadSound("win.ogg");
 
 	Model mdl_ship = LoadModel("ship.glb");
+	Model mdl_turret = LoadModel("turret.glb");
 	Texture tex_expl = LoadTexture("explosion.png");
 
 	// =======================================
@@ -396,6 +397,8 @@ int main()
 					//	WHITE);
 
 					ParticlesDraw();
+
+					DrawModel(mdl_turret, (Vector3) { 0, 0, 500 }, 1, WHITE);
 
 				} EndMode3D();
 
