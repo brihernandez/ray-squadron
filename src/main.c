@@ -55,6 +55,10 @@ typedef struct Turret
 	Vector3 position;
 	Quaternion rotation;
 	Vector3 targetPos;
+	Vector3 azimuthLocalPosition;
+	Vector3 elevationLocalPosition;
+	Vector3 firepoints[2];
+	int numFirepoints;
 	float azimuth;
 	float elevation;
 	float fireDelay;
@@ -64,33 +68,41 @@ typedef struct Turret
 
 static void UpdateTurret(WorldState* world, Turret* turret, float deltaTime)
 {
-	turret->azimuth += 90 * DEG2RAD * GetFrameTime();
+	turret->azimuth += turret->turnRate * DEG2RAD * GetFrameTime();
 	turret->elevation = (float)sin(GetTime() * 10) * 0.2f - 0.4f;
 
 	turret->fireCooldown -= deltaTime;
 	if (turret->fireCooldown <= 0)
 	{
+		if (turret->numFirepoints == 0)
+		{
+			printf("Turret has no firepoints!");
+			turret->fireCooldown = turret->fireDelay;
+			return;
+		}
+
 		Matrix worldMat = MatrixBuildTransform(
 			turret->position,
 			turret->rotation);
 
 		Matrix azimuthMat = MatrixBuildTransform(
-			(Vector3) { 0, 32, 0 },
+			turret->azimuthLocalPosition,
 			QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, turret->azimuth));
 		Matrix worldAzimuthMat = MatrixMultiply(azimuthMat, worldMat);
 
 		Matrix elevationMat = MatrixBuildTransform(
-			(Vector3) { 0, 10, 0 },
+			turret->elevationLocalPosition,
 			QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, turret->elevation));
 		Matrix worldElevationMat = MatrixMultiply(elevationMat, worldAzimuthMat);
 
-		Vector3 firePosition = Vector3Transform((Vector3) { 0, 0, 25 }, worldElevationMat);
-
-		Vector3 muzzleVelocity = Vector3RotateByQuaternion(
-			(Vector3) { 0, 0, 400 },
-			QuaternionFromMatrix(worldElevationMat));
-
-		BulletsFire(world, firePosition, muzzleVelocity, 3);
+		for (int i = 0; i < turret->numFirepoints; i++)
+		{
+			Vector3 firePosition = Vector3Transform(turret->firepoints[i], worldElevationMat);
+			Vector3 muzzleVelocity = Vector3RotateByQuaternion(
+				(Vector3) { 0, 0, 400 },
+				QuaternionFromMatrix(worldElevationMat));
+			BulletsFire(world, firePosition, muzzleVelocity, 3);
+		}
 		turret->fireCooldown = turret->fireDelay;
 	}
 }
@@ -200,13 +212,17 @@ int main()
 
 	Turret turretTemplate = {
 		.position = {0, 0, 500},
-		.rotation = QuaternionFromAxisAngle((Vector3){0, 1, 0}, 180 * DEG2RAD),
+		.rotation = QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, 180 * DEG2RAD),
 		.targetPos = {0, 150, 0},
+		.azimuthLocalPosition = {0, 32, 0},
+		.elevationLocalPosition = {0, 10, 0},
+		.firepoints = {{0, 0, 25}},
+		.numFirepoints = 1,
 		.azimuth = 0,
 		.elevation = 0,
 		.fireDelay = 0.5,
 		.fireCooldown = 0,
-		.turnRate = 1,
+		.turnRate = 90,
 	};
 	Turret turrets[TURRET_COUNT] = {0};
 	for (int i = 0; i < TURRET_COUNT; i++)
