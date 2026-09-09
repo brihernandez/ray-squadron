@@ -19,7 +19,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "resource_dir.h"
 #include "smoothdamp.h"
 
-#define TURRET_COUNT 8
+#define TURRET_COUNT 30
 #define BUILDING_SIZE 20
 
 const int RenderWidth = 800;
@@ -314,9 +314,9 @@ int main()
 					for (int i = 0; i < TURRET_COUNT; i++)
 					{
 						turrets[i].position = (Vector3){
-							GetRandomFloat(-500, 500),
+							GetRandomFloat(-2000, 2000),
 							0,
-							GetRandomFloat(-500, 500),
+							GetRandomFloat(-2000, 2000),
 						};
 					}
 
