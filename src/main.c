@@ -528,7 +528,7 @@ int main()
 
 					ParticlesDraw();
 
-					for (int i = 0; i < 8; i++)
+					for (int i = 0; i < TURRET_COUNT; i++)
 					{
 						UpdateTurret(&world, &turrets[i], GetFrameTime());
 						DrawTurret(&mdl_turret, &turrets[i]);
