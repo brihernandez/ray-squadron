@@ -8,7 +8,8 @@ struct WorldState;
 typedef struct Projectile {
 	Vector3 position;
 	Vector3 velocity;
-	float lifeTime;
+	float timeActive;
+	float timeToLive;
 	bool isActive;
 } Projectile;
 

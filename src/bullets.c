@@ -70,25 +70,52 @@ void BulletsInit(WorldState* world)
 	}
 }
 
-void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float timeToLive)
+// Returns NULL if there are no inactive bullets.
+static Projectile* FindFirstInactiveBullet(WorldState* world)
 {
-	// Find first inactive bullet and use it to spawn.
-	// This whole thing can be done much better.
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
-		if (world->bullets[i].isActive)
-			continue;
-
-		world->bullets[i].isActive = true;
-		world->bullets[i].lifeTime = timeToLive;
-		world->bullets[i].position = position;
-		world->bullets[i].velocity = velocity;
-
-		muzzleFlashes[muzzleFlashCount] = position;
-		muzzleFlashCount += 1;
-
-		break;
+		if (world->bullets[i].isActive == false)
+			return &world->bullets[i];
 	}
+	return NULL;
+}
+
+// Returns NULL if there are no active bullets.
+static Projectile* FindOldestBullet(WorldState* world)
+{
+	Projectile* bulletNearestToDeath = NULL;
+	float oldestTime = 0;
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		Projectile* bullet = &world->bullets[i];
+		if (bullet->isActive && bullet->timeActive > oldestTime)
+		{
+			bulletNearestToDeath = bullet;
+			oldestTime = bullet->timeActive;
+		}
+
+	}
+	return bulletNearestToDeath;
+}
+
+void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float timeToLive)
+{
+	Projectile* bullet = FindFirstInactiveBullet(world);
+	if (bullet == NULL)
+	{
+		bullet = FindOldestBullet(world);
+		printf("%f WARNING: No free bullets, using oldest bullet! Consider raising BULLETS_MAX\n", GetTime());
+	}
+
+	bullet->isActive = true;
+	bullet->timeToLive = timeToLive;
+	bullet->timeActive = 0;
+	bullet->position = position;
+	bullet->velocity = velocity;
+
+	muzzleFlashes[muzzleFlashCount] = position;
+	muzzleFlashCount += 1;
 }
 
 bool BulletsUpdate(WorldState* world, float deltaTime)
@@ -105,8 +132,12 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 		Projectile* bul = &world->bullets[i];
 		Vector3 bulletDelta = Vector3Scale(bul->velocity, deltaTime);
 		bul->position = Vector3Add(bul->position, bulletDelta);
-		bul->lifeTime -= deltaTime;
-		bul->isActive = bul->lifeTime > 0 && bul->position.y > 0;
+		bul->timeToLive -= deltaTime;
+		bul->timeActive += deltaTime;
+		bul->isActive = bul->timeToLive > 0;
+
+		if (bul->isActive == false)
+			continue;
 
 		if (bul->position.y <= 0)
 		{
