@@ -19,6 +19,8 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "resource_dir.h"
 #include "smoothdamp.h"
 
+#include <stdio.h>
+
 #define TURRET_COUNT 30
 #define BUILDING_SIZE 20
 

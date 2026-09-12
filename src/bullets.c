@@ -4,6 +4,8 @@
 
 #include <raymath.h>
 
+#include <stdio.h>
+
 #define MUZZLE_FLASH_SIZE 6
 static Vector3 muzzleFlashes[MAX_BULLETS];
 static int muzzleFlashCount = 0;
