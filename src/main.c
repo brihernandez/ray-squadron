@@ -491,14 +491,14 @@ int main()
 						float lerp = Normalize(timeSinceQuickLoad, 0, fadeTime);
 						lerp = Clamp(lerp, 0, fadeTime);
 						Color col = ColorLerp(ORANGE, BLACK, lerp);
-						DrawTextCentered("Quick Loaded", RenderHeight / 2, RenderWidth - 120, 20, col);
+						DrawTextCentered("Quick Loaded", RenderWidth / 2, RenderHeight - 120, 20, col);
 					}
 					else if (timeSinceQuickSave < fadeTime)
 					{
 						float lerp = Normalize(timeSinceQuickSave, 0, fadeTime);
 						lerp = Clamp(lerp, 0, fadeTime);
 						Color col = ColorLerp(ORANGE, BLACK, lerp);
-						DrawTextCentered("Quick Saved", RenderHeight / 2, RenderWidth - 120, 20, col);
+						DrawTextCentered("Quick Saved", RenderWidth / 2, RenderHeight - 120, 20, col);
 					}
 
 					EndBlendMode();
