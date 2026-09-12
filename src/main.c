@@ -473,9 +473,9 @@ int main()
 				if (currentScreen == ENDING)
 				{
 					// Win message on completion
-					DrawRectangle(0, 0, RenderHeight, RenderWidth, Fade(BLACK, 0.8f));
-					DrawTextCentered("YOU BEAT THE GAME!", RenderHeight / 2, RenderWidth / 2 - 30, 60, ORANGE);
-					DrawTextCentered("Press [ENTER] to play again.", RenderHeight / 2, RenderWidth / 2 + 30, 20, ORANGE);
+					DrawRectangle(0, 0, RenderWidth, RenderHeight, Fade(BLACK, 0.8f));
+					DrawTextCentered("YOU BEAT THE GAME!", RenderWidth / 2, RenderHeight / 2 - 30, 60, ORANGE);
+					DrawTextCentered("Press [ENTER] to play again.", RenderWidth / 2, RenderHeight / 2 + 30, 20, ORANGE);
 				}
 				else
 				{
@@ -511,6 +511,8 @@ int main()
 			}
 		} EndTextureMode();
 
+		// Drawing the game's fixed resolution render texture to the screen,
+		// with a fixed aspect ratio.
 		BeginDrawing();
 		{
 			ClearBackground(BLACK);
