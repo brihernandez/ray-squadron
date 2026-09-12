@@ -1,161 +1,35 @@
-# Raylib-Quickstart
-A simple cross platform template for setting up a project with the bleeding edge raylib code.
-Works with C or C++.
+# Ray Squadron
 
-# Basic Setup
-Download this repository to get started.
+![preview](images/preview.gif)
 
-You can download the zip file of the repository from the Green Code button on github. This is the simplest way to get the template to start from.
-Once you have downloaded the template, rename it to your project name.
+Arcade flight action shooting game made using [Raylib](https://www.raylib.com/), built off the [Raylib Quickstart](https://github.com/raylib-extras/raylib-quickstart) (very handy!).
 
-or
+As of the time of this writing (September 12 2026), there is a full game loop with a title screen, and a short game to play which can be completed.
 
-Clone the repository with git, from the url
-```
-https://github.com/raylib-extras/raylib-quickstart.git
-```
+* Fly a little spaceship with WASD/Arrow Keys to blow up the blocks and red spaceships flying around the area.
+* Shoot lasers with left control or left mouse button.
+* Turrets which are there mostly just to look cool and spray fire around the map, because I am uploading this right after figuring out how to get the transform stuff working.
+* As a consequence of the world state being stored in one big struct, I realized adding quicksaving/loading was pretty trivial, so you can quicksave/load with F5/F9.
+* That's really it I guess!, but the controls and camera feel real good, it's my favorite part of this.
 
-If you are using a command line git client you can use the command below to download and rename the template in one step
-```
-git clone https://github.com/raylib-extras/raylib-quickstart.git [name-for-your-project-here]
-```
+This isn't exactly what I would consider a "releasable game". There's still stuff in here hardcoded to my specific machine and preferences. This was never really meant to be a fully functional game in the first place, more just a programming exercise, and reference for myself and anybody else who might be interested.
 
-# Naming projects
-* Replace the placeholder with your desired project name when running the git clone command above.
-* __Do not name your game project 'raylib', it will conflict with the raylib library.__
-* If you have used custom game name with __git clone__, there is no need to rename it again.
+### Portability
 
+Raylib itself is included as a flat copy of the Raylib 6.2 as of August 2026, so there should be no need for linking it yourself from vcpkg, NuGet, a local repository, etc.
 
-## Supported Platforms
-Quickstart supports the main 3 desktop platforms:
-* Windows
-* Linux
-* MacOS
+While the code and assets themselves would probably work just fine on other platforms, I have made no considerations to it being cross-platform so I can't guarantee anything beyond it working in my own preferred and checked in workflow of Visual Studio 2026 with MSVC.
 
-# VSCode Users (all platforms)
-*Note* You must have a compiler toolchain installed in addition to vscode.
+## The C Programming Language
 
-1. Download the quickstart
-2. Rename the folder to your game name
-3. Open the folder in VSCode
-4. Run the build task ( CTRL+SHIFT+B or F5 )
-5. You are good to go
+On a whim, I decided early on to do the game entirely in C instead of C++ like I typically do. It's built in what Visual Studio as of September 2026 calls "latest" which is going to be some half-implemented version of the C23 spec.
 
-# Windows Users
-There are two compiler toolchains available for windows, MinGW-W64 (a free compiler using GCC), and Microsoft Visual Studio
-## Using MinGW-W64
-* Rename the folder to your game name
-* Double click the `build-MinGW-W64.bat` file
-* CD into the folder in your terminal
-  * if you are using the W64devkit and have not added it to your system path environment variable, you must use the W64devkit.exe terminal, not CMD.exe
-  * If you want to use cmd.exe or any other terminal, please make sure that gcc/mingw-W64 is in your path environment variable.
-* run `make`
-* You are good to go
+I occasionally use C. It was the first programming language I learned, but I'm definitely more of a C++ programmer, especially given that all my professional work has been with C++. This game has been a very deliberate "back to my roots" type endeavor, because what tends to happen is once a C project gets to a certain size, I get annoyed at the lack of C++ features and convert it to C++.
 
-### Note on MinGW-64 versions
-Make sure you have a modern version of MinGW-W64 (not mingw).
-The best place to get it is from the W64devkit from
-https://github.com/skeeto/w64devkit/releases
+Fortunately, this time it actually *has* been very fun using plain old C again. There's so many times it has happened where if I was using C++ I know I would have gone crazy and totally over-engineered a solution but the friction to doing that kind of thing in C has been very refreshing this time. There are so many things, like for example just using fixed statically allocated arrays and just *not worrying about moving memory around or dynamic allocations*. Not only that, but it makes the code so much less complex and easier to understand because it's really not doing anything!
 
-or the version installed with the raylib installer
+C is a very honest language. What you see is what you get.
 
-#### If you have installed raylib from the installer
-Make sure you have added the path
+Unlike [Ergo](https://github.com/brihernandez/Ergo), I didn't make any particular effort to make this super understandable. This is the raw code as I've been working on it, but even still I think it shouldn't be too hard to grasp. There's nothing particularly clever going on in the repository.
 
-`C:\raylib\w64devkit\bin`
-
-To your path environment variable so that the compiler that came with raylib can be found.
-
-DO NOT INSTALL ANOTHER MinGW-W64 from another source such as msys2, you don't need it.
-
-## Microsoft Visual Studio 2026
-* Rename the folder to your game name
-* Run `build-VisualStudio2026.bat`
-* double click the `.slnx` file that is generated
-* develop your game
-* you are good to go
-
-# Linux Users
-* Rename the folder to your game name
-* CD into the build folder
-* run `./premake5 gmake`
-* CD back to the root
-* run `make`
-* you are good to go
-
-# MacOS Users
-* Rename the folder to your game name
-* CD into the build folder
-* run `./premake5.osx gmake`
-* CD back to the root
-* run `make`
-* you are good to go
-
-# Output files
-The built code will be in the bin dir
-
-# Working directories and the resources folder
-The example uses a utility function from `path_utils.h` that will find the resources dir and set it as the current working directory. This is very useful when starting out. If you wish to manage your own working directory you can simply remove the call to the function and the header.
-
-# Changing to C++
-Simply rename `src/main.c` to `src/main.cpp` and re-run the steps above and do a clean build.
-
-# Using your own code
-Simply remove `src/main.c` and replace it with your code, and re-run the steps above and do a clean build.
-
-# Building for other OpenGL targets
-If you need to build for a different OpenGL version than the default (OpenGL 3.3) you can specify an OpenGL version in your premake command line. Just modify the bat file or add the following to your command line
-
-## For OpenGL 1.1
-`--graphics=opengl11`
-
-## For OpenGL 2.1
-`--graphics=opengl21`
-
-## For OpenGL 4.3
-`--graphics=opengl43`
-
-## For OpenGLES 2.0
-`--graphics=opengles2`
-
-## For OpenGLES 3.0
-`--graphics=opengles3`
-
-## For Software Rendering
-`--graphics=software`
-
-*Note*
-Sofware rendering does not work with glfw, use Win32 or SDL platforms
-`--backend=win32`
-
-# Adding External Libraries 
-
-Quickstart is intentionally minimal — it only includes what is required to compile and run a basic raylib project.  
-If you want to use extra libraries, you can add them to the `build/premake5.lua` file yourself using the links function.
-
-You can find the documentation for the links function here https://premake.github.io/docs/links/
-
-### Example: adding the required libraries for tinyfiledialogs on Windows
-tinyfiledialogs requires extra Windows system libraries.
-The premake file uses filters to define options that are platform specific
-https://premake.github.io/docs/Filters/
-
-Using the windows filter adds these libraries only to the windows build.
-```
-filter "system:windows"
-    links {
-        "Comdlg32",
-        "User32",
-        "Ole32",
-        "Shell32"
-    }
-```
-
-### Cross-platform reminder
-If you add a library, make sure to add its required dependencies for all platforms you plan to support (Windows, Linux, MacOS).
-Different libraries will have different dependencies on different platforms.
-
-
-# License
-Raylib-Quickstart by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 

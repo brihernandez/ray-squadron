@@ -379,6 +379,7 @@ int main()
 					input.roll += 1;
 				}
 
+				// 2 because that's what it is on my computer!
 				int gamepadIndex = 2;
 				input.pitch -= GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_Y);
 				float gamepadYaw = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_X);
