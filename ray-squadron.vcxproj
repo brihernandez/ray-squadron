@@ -306,6 +306,7 @@
     <ClInclude Include="src\bullets.h" />
     <ClInclude Include="src\particles.h" />
     <ClInclude Include="src\ship.h" />
+    <ClInclude Include="src\turrets.h" />
     <ClInclude Include="src\world.h" />
   </ItemGroup>
   <ItemGroup>
@@ -313,6 +314,7 @@
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\particles.c" />
     <ClCompile Include="src\ship.c" />
+    <ClCompile Include="src\turrets.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\confirm.ogg" />

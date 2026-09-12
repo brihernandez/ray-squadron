@@ -15,20 +15,18 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "ship.h"
 #include "bullets.h"
 #include "particles.h"
+#include "turrets.h"
 
 #include "resource_dir.h"
 #include "smoothdamp.h"
 
 #include <stdio.h>
 
-#define TURRET_COUNT 30
-#define BUILDING_SIZE 20
-
 const int RenderWidth = 800;
 const int RenderHeight = 600;
 bool isPointFiltered = false;
 
-void UpdateRenderFiltering(RenderTexture2D* rt, bool usePoint)
+static void UpdateRenderFiltering(RenderTexture2D* rt, bool usePoint)
 {
 	SetTextureFilter(rt->texture, usePoint ? TEXTURE_FILTER_POINT : TEXTURE_FILTER_BILINEAR);
 }
@@ -49,90 +47,9 @@ static float GetRandomFloat(float min, float max)
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 void DrawText3D(Camera camera, Vector3 position, const char* text, Color color);
-Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation);
 void DrawGridColored(int slices, float spacing, Color color);
 
-typedef struct Turret
-{
-	Vector3 position;
-	Quaternion rotation;
-	Vector3 targetPos;
-	Vector3 azimuthLocalPosition;
-	Vector3 elevationLocalPosition;
-	Vector3 firepoints[2];
-	int numFirepoints;
-	float azimuth;
-	float elevation;
-	float fireDelay;
-	float fireCooldown;
-	float turnRate;
-} Turret;
-
-static void UpdateTurret(WorldState* world, Turret* turret, float deltaTime)
-{
-	turret->azimuth += turret->turnRate * DEG2RAD * GetFrameTime();
-	turret->elevation = (float)sin(GetTime() * 10) * 0.2f - 0.4f;
-
-	turret->fireCooldown -= deltaTime;
-	if (turret->fireCooldown <= 0)
-	{
-		if (turret->numFirepoints == 0)
-		{
-			printf("Turret has no firepoints!");
-			turret->fireCooldown = turret->fireDelay;
-			return;
-		}
-
-		Matrix worldMat = MatrixBuildTransform(
-			turret->position,
-			turret->rotation);
-
-		Matrix azimuthMat = MatrixBuildTransform(
-			turret->azimuthLocalPosition,
-			QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, turret->azimuth));
-		Matrix worldAzimuthMat = MatrixMultiply(azimuthMat, worldMat);
-
-		Matrix elevationMat = MatrixBuildTransform(
-			turret->elevationLocalPosition,
-			QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, turret->elevation));
-		Matrix worldElevationMat = MatrixMultiply(elevationMat, worldAzimuthMat);
-
-		for (int i = 0; i < turret->numFirepoints; i++)
-		{
-			Vector3 firePosition = Vector3Transform(turret->firepoints[i], worldElevationMat);
-			Vector3 muzzleVelocity = Vector3RotateByQuaternion(
-				(Vector3) { 0, 0, 400 },
-				QuaternionFromMatrix(worldElevationMat));
-			BulletsFire(world, firePosition, muzzleVelocity, 3);
-		}
-		turret->fireCooldown = turret->fireDelay;
-	}
-}
-
-static void DrawTurret(Model* model, Turret* turret)
-{
-	Material defaultMaterial = LoadMaterialDefault();
-
-	Matrix worldMat = MatrixBuildTransform(
-		turret->position,
-		turret->rotation);
-
-	Matrix azimuthMat = MatrixBuildTransform(
-		(Vector3){0, 32, 0},
-		QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, turret->azimuth));
-	Matrix worldAzimuthMat = MatrixMultiply(azimuthMat, worldMat);
-
-	Matrix elevationMat = MatrixBuildTransform(
-		(Vector3){0, 10, 0},
-		QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, turret->elevation));
-	Matrix worldElevationMat = MatrixMultiply(elevationMat, worldAzimuthMat);
-
-	DrawMesh(model->meshes[0], defaultMaterial, worldMat);
-	DrawMesh(model->meshes[1], defaultMaterial, worldAzimuthMat);
-	DrawMesh(model->meshes[2], defaultMaterial, worldElevationMat);
-}
-
-void DrawAnimatedBillboard(
+static void DrawAnimatedBillboard(
 	Camera camera,
 	Texture2D texture,
 	int rows, int columns,
@@ -227,14 +144,8 @@ int main()
 		.fireDelay = 0.5,
 		.fireCooldown = 0,
 		.turnRate = 90,
+		.hp = TURRET_MAXHP,
 	};
-	Turret turrets[TURRET_COUNT] = {0};
-	for (int i = 0; i < TURRET_COUNT; i++)
-	{
-		turrets[i] = turretTemplate;
-		turrets[i].fireCooldown = GetRandomFloat(0, turretTemplate.fireDelay);
-		turrets[i].azimuth = GetRandomFloat(0, 360 * DEG2RAD);
-	}
 
 	// =======================================
 	// Weapons init
@@ -315,9 +226,12 @@ int main()
 						world.enemyControllers[i].targetAltitude = (float)GetRandomValue(100, 200);
 					}
 
-					for (int i = 0; i < TURRET_COUNT; i++)
+					for (int i = 0; i < MAX_TURRETS; i++)
 					{
-						turrets[i].position = (Vector3){
+						world.turrets[i] = turretTemplate;
+						world.turrets[i].fireCooldown = GetRandomFloat(0, turretTemplate.fireDelay);
+						world.turrets[i].azimuth = GetRandomFloat(0, 360 * DEG2RAD);
+						world.turrets[i].position = (Vector3){
 							GetRandomFloat(-2000, 2000),
 							0,
 							GetRandomFloat(-2000, 2000),
@@ -453,6 +367,9 @@ int main()
 					if (e->position.z < -500) e->position.z = -500;
 				}
 
+				for (int i = 0; i < MAX_TURRETS; i++)
+					TurretUpdate(&world, &world.turrets[i], GetFrameTime());
+
 				ParticlesUpdate(deltaTime);
 
 				// Check win condition.
@@ -533,11 +450,8 @@ int main()
 
 					ParticlesDraw();
 
-					for (int i = 0; i < TURRET_COUNT; i++)
-					{
-						UpdateTurret(&world, &turrets[i], GetFrameTime());
-						DrawTurret(&mdl_turret, &turrets[i]);
-					}
+					for (int i = 0; i < MAX_TURRETS; i++)
+						TurretDraw(&mdl_turret, &world.turrets[i]);
 
 				} EndMode3D();
 
@@ -651,13 +565,6 @@ void DrawText3D(Camera camera, Vector3 position, const char* text, Color color)
 
 	Vector2 screenPos = GetWorldToScreenEx(position, camera, RenderWidth, RenderHeight);
 	DrawText(text, (int)screenPos.x, (int)screenPos.y, 10, color);
-}
-
-Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation)
-{
-	Matrix transform = MatrixTranslate(position.x, position.y, position.z);
-	transform = MatrixMultiply(QuaternionToMatrix(rotation), transform);
-	return transform;
 }
 
 void DrawGridColored(int slices, float spacing, Color color)

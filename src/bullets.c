@@ -194,6 +194,12 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 				break;
 			}
 		}
+
+		for (int t = 0; t < MAX_TURRETS; t++)
+		{
+			// Do hit detection on the turrets.
+
+		}
 	}
 	return explodedSomething;
 }
