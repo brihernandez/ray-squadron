@@ -176,7 +176,9 @@ int main()
 
 	Music bgm = LoadMusicStream("realtrees.ogg");
 	bgm.looping = true;
-	//PlayMusicStream(bgm);
+#ifndef _DEBUG
+	PlayMusicStream(bgm);
+#endif
 
 	Sound sfx_confirm = LoadSound("confirm.ogg");
 	Sound sfx_shoot = LoadSound("shoot.ogg");
