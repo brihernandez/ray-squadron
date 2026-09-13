@@ -100,9 +100,10 @@ int main()
 #endif
 
 	sfx_confirm = AudioRegisterSound(LoadSound("confirm.ogg"), 1);
-	sfx_shoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 250, 500, AUDIO_MAX_INSTANCES);
-	sfx_playerShoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 250, 500, AUDIO_MAX_INSTANCES);
-	sfx_explode = AudioRegisterSound3D(LoadSound("explode.ogg"), 250, 500, 4);
+	sfx_shoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 90, 300, AUDIO_MAX_INSTANCES);
+	sfx_shootHeavy = AudioRegisterSound3D(LoadSound("shootheavy.ogg"), 120, 400, AUDIO_MAX_INSTANCES);
+	sfx_playerShoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 90, 200, AUDIO_MAX_INSTANCES);
+	sfx_explode = AudioRegisterSound3D(LoadSound("explode.ogg"), 150, 500, 4);
 	sfx_win = AudioRegisterSound(LoadSound("win.ogg"), 1);
 
 	Model mdl_ship = LoadModel("ship.glb");
@@ -157,7 +158,7 @@ int main()
 		.numFirepoints = 1,
 		.azimuth = 0,
 		.elevation = 0,
-		.fireSound = sfx_shoot,
+		.fireSound = sfx_shootHeavy,
 		.fireDelay = 0.5,
 		.fireCooldown = 0,
 		.turnRate = 90,

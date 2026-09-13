@@ -325,6 +325,7 @@
     <None Include="resources\realtrees.ogg" />
     <None Include="resources\ship.glb" />
     <None Include="resources\shoot.ogg" />
+    <None Include="resources\shootheavy.ogg" />
     <None Include="resources\turret.glb" />
     <None Include="resources\win.ogg" />
     <None Include="src\icon.ico" />
