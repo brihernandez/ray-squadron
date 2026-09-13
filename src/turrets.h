@@ -5,6 +5,7 @@
 struct WorldState;
 
 #define TURRET_MAX_HP 10
+#define TURRET_MAX_FIREPOINTS 2
 typedef struct Turret
 {
 	Vector3 position;
@@ -12,7 +13,7 @@ typedef struct Turret
 	Vector3 targetPos;
 	Vector3 azimuthLocalPosition;
 	Vector3 elevationLocalPosition;
-	Vector3 firepoints[2];
+	Vector3 firepoints[TURRET_MAX_FIREPOINTS];
 	int numFirepoints;
 	float azimuth;
 	float elevation;
