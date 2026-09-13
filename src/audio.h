@@ -2,15 +2,15 @@
 
 #include <raylib.h>
 
-#define AUDIO_MAX_SOUNDS 8
-#define AUDIO_MAX_INSTANCES 32
+#define AUDIO_MAX_SOURCES 8
+#define AUDIO_MAX_ALIASES 32
 
-// Registers a sound and creates a bunch of instances of it.
+// Registers a sound and creates a bunch of aliases of it.
 // Returns index of created sound.
-int AudioRegisterSound(Sound sound, int instances);
+int AudioRegisterSound(Sound sound, int aliases);
 // Registers a sound with min/max distance so that it attenuates with distance.
 // Returns index of created sound.
-int AudioRegisterSound3D(Sound sound, float minDistance, float maxDistance, int instances);
+int AudioRegisterSound3D(Sound sound, float minDistance, float maxDistance, int aliases);
 
 // Plays the oldest instance of the sound at the specified volume.
 void AudioPlaySound(int soundIndex, float volume);

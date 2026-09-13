@@ -22,7 +22,7 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "resource_dir.h"
 #include "smoothdamp.h"
 
-#include <stdio.h>
+#include <stdbool.h>
 
 const int RenderWidth = 800;
 const int RenderHeight = 600;
@@ -100,9 +100,9 @@ int main()
 #endif
 
 	sfx_confirm = AudioRegisterSound(LoadSound("confirm.ogg"), 1);
-	sfx_shoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 90, 300, AUDIO_MAX_INSTANCES);
-	sfx_shootHeavy = AudioRegisterSound3D(LoadSound("shootheavy.ogg"), 120, 400, AUDIO_MAX_INSTANCES);
-	sfx_playerShoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 90, 200, AUDIO_MAX_INSTANCES);
+	sfx_shoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 90, 300, AUDIO_MAX_ALIASES);
+	sfx_shootHeavy = AudioRegisterSound3D(LoadSound("shootheavy.ogg"), 120, 400, AUDIO_MAX_ALIASES);
+	sfx_playerShoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 90, 200, AUDIO_MAX_ALIASES);
 	sfx_explode = AudioRegisterSound3D(LoadSound("explode.ogg"), 150, 500, 4);
 	sfx_win = AudioRegisterSound(LoadSound("win.ogg"), 1);
 

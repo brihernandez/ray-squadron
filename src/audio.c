@@ -1,6 +1,8 @@
 #include "audio.h"
 
+#include <raylib.h>
 #include <raymath.h>
+#include <stdbool.h>
 
 // The alias is of a fixed size to keep things simple. This means that there will be "wasted"
 // zero-initialized aliases in memory, but it's fine. They don't take up that much memory.
@@ -11,7 +13,7 @@
 typedef struct AudioSource
 {
 	Sound sound;
-	Sound aliases[AUDIO_MAX_INSTANCES];
+	Sound aliases[AUDIO_MAX_ALIASES];
 	// Negative value indicates a 2D sound.
 	float minDistance;
 	// Negative value indicates a 2D sound.
@@ -27,46 +29,51 @@ static Sound AudioSourceGetNextAlias(AudioSource* source)
 	return alias;
 }
 
-static AudioSource sounds[AUDIO_MAX_SOUNDS] = {0};
+static AudioSource sources[AUDIO_MAX_SOURCES] = {0};
 static int soundCount = 0;
 static Vector3 listener = {0};
 
-static bool IsSound3D(AudioSource* sound)
+static bool IsSource2D(AudioSource* source)
 {
-	return sound->maxDistance < 0;
+	return source->maxDistance < 0 || source->minDistance < 0;
 }
 
-int AudioRegisterSound(Sound sound, int instances)
+static bool IsSource3D(AudioSource* source)
 {
-	return AudioRegisterSound3D(sound, -1, -1, instances);
+	return source->maxDistance > 0 && source->maxDistance > 0;
 }
 
-int AudioRegisterSound3D(Sound sound, float minDistance, float maxDistance, int instances)
+int AudioRegisterSound(Sound sound, int aliases)
 {
-	if (soundCount >= AUDIO_MAX_SOUNDS)
+	return AudioRegisterSound3D(sound, -1, -1, aliases);
+}
+
+int AudioRegisterSound3D(Sound sound, float minDistance, float maxDistance, int aliases)
+{
+	if (soundCount >= AUDIO_MAX_SOURCES)
 	{
-		TraceLog(LOG_ERROR, "No available sounds left to register sound %s! Consider raising the AUDIO_MAX_SOUNDS!");
+		TraceLog(LOG_ERROR, "No available sources left to register sound %s! Consider raising the AUDIO_MAX_SOURCES!");
 		return false;
 	}
 
 	int newIndex = soundCount;
-	if (instances > AUDIO_MAX_INSTANCES)
-		instances = AUDIO_MAX_INSTANCES;
-	if (instances < 1)
-		instances = 1;
+	if (aliases > AUDIO_MAX_ALIASES)
+		aliases = AUDIO_MAX_ALIASES;
+	if (aliases < 1)
+		aliases = 1;
 
-	sounds[newIndex] = (AudioSource)
+	sources[newIndex] = (AudioSource)
 	{
 		.sound = sound,
 		.aliases = {0},
 		.minDistance = minDistance,
 		.maxDistance = maxDistance,
-		.instanceCount = instances,
+		.instanceCount = aliases,
 		.nextAliasIndex = 0,
 	};
 
-	for (int i = 0; i < AUDIO_MAX_INSTANCES; i++)
-		sounds[newIndex].aliases[i] = LoadSoundAlias(sounds[newIndex].sound);
+	for (int i = 0; i < AUDIO_MAX_ALIASES; i++)
+		sources[newIndex].aliases[i] = LoadSoundAlias(sources[newIndex].sound);
 
 	soundCount += 1;
 	return newIndex;
@@ -74,7 +81,7 @@ int AudioRegisterSound3D(Sound sound, float minDistance, float maxDistance, int 
 
 static bool IsValidIndex(int index)
 {
-	return index >= 0 && index < AUDIO_MAX_SOUNDS && index < soundCount;
+	return index >= 0 && index < AUDIO_MAX_SOURCES && index < soundCount;
 }
 
 void AudioPlaySound(int soundIndex, float volume)
@@ -85,7 +92,7 @@ void AudioPlaySound(int soundIndex, float volume)
 		return;
 	}
 
-	Sound alias = AudioSourceGetNextAlias(&sounds[soundIndex]);
+	Sound alias = AudioSourceGetNextAlias(&sources[soundIndex]);
 	PlaySound(alias);
 }
 
@@ -97,7 +104,7 @@ void AudioPlaySound3D(int soundIndex, Vector3 position, float volume)
 		return;
 	}
 
-	AudioSource* source = &sounds[soundIndex];
+	AudioSource* source = &sources[soundIndex];
 
 	// Negative min/max distances indicate a 2D sound.
 	if (source->minDistance < 0)
