@@ -11,9 +11,10 @@ typedef struct ShipHandling
 	float minSpeed;
 } ShipHandling;
 
+#define SHIP_MAX_BARRELS 4
 typedef struct ShipWeapons
 {
-	Vector3 barrels[2];
+	Vector3 barrels[SHIP_MAX_BARRELS];
 	Sound fireSound;
 	float fireDelay;
 	float muzzleVelocity;

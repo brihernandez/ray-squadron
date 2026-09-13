@@ -35,6 +35,11 @@ Ship ShipInit(ShipHandling handling, ShipWeapons weapons, bool isEnemy)
 	ship.speed = handling.maxSpeed;
 	ship.isActive = true;
 	ship.isEnemy = isEnemy;
+
+	// Protect against array index out of bounds.
+	if (ship.weapons.barrelCount > SHIP_MAX_BARRELS)
+		ship.weapons.barrelCount = SHIP_MAX_BARRELS;
+
 	return ship;
 }
 
