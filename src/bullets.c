@@ -107,7 +107,7 @@ void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float ti
 	if (bullet == NULL)
 	{
 		bullet = FindOldestBullet(world);
-		printf("%f WARNING: No free bullets, using oldest bullet! Consider raising BULLETS_MAX\n", GetTime());
+		TraceLog(LOG_WARNING, "No free bullets, using oldest bullet! Consider raising BULLETS_MAX");
 	}
 
 	bullet->isActive = true;

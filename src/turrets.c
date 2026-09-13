@@ -22,13 +22,13 @@ void TurretUpdate(WorldState* world, Turret* turret, float deltaTime)
 		// TODO: These two warnings should go on some Initialize function instead.
 		if (turret->numFirepoints == 0)
 		{
-			printf("Turret has no firepoints!\n");
+			TraceLog(LOG_ERROR, "Turret has no firepoints!");
 			turret->fireCooldown = turret->fireDelay;
 			return;
 		}
 		if (turret->numFirepoints > TURRET_MAX_FIREPOINTS)
 		{
-			printf("Turret has too many firepoints! Cannot be greater than %d\n", TURRET_MAX_FIREPOINTS);
+			TraceLog(LOG_ERROR, "Turret has too many firepoints! Cannot be greater than %d", TURRET_MAX_FIREPOINTS);
 			turret->fireCooldown = turret->fireDelay;
 			return;
 		}
