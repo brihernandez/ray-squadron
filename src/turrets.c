@@ -62,8 +62,6 @@ void TurretUpdate(WorldState* world, Turret* turret, float deltaTime)
 
 void TurretDraw(Model* model, Turret* turret)
 {
-	Material defaultMaterial = LoadMaterialDefault();
-
 	Matrix worldMat = MatrixBuildTransform(
 		turret->position,
 		turret->rotation);
@@ -78,7 +76,7 @@ void TurretDraw(Model* model, Turret* turret)
 		QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, turret->elevation));
 	Matrix worldElevationMat = MatrixMultiply(elevationMat, worldAzimuthMat);
 
-	DrawMesh(model->meshes[0], defaultMaterial, worldMat);
-	DrawMesh(model->meshes[1], defaultMaterial, worldAzimuthMat);
-	DrawMesh(model->meshes[2], defaultMaterial, worldElevationMat);
+	DrawMesh(model->meshes[0], model->materials[0], worldMat);
+	DrawMesh(model->meshes[1], model->materials[0], worldAzimuthMat);
+	DrawMesh(model->meshes[2], model->materials[0], worldElevationMat);
 }
