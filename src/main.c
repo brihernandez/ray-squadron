@@ -100,6 +100,7 @@ int main()
 
 	Sound sfx_confirm = LoadSound("confirm.ogg");
 	Sound sfx_shoot = LoadSound("shoot.ogg");
+	Sound sfx_shootTurret = LoadSound("shootheavy.ogg");
 	Sound sfx_explode = LoadSound("explode.ogg");
 	Sound sfx_win = LoadSound("win.ogg");
 
@@ -156,6 +157,7 @@ int main()
 		.elevation = 0,
 		.fireDelay = 0.5,
 		.fireCooldown = 0,
+		.fireSound = sfx_shootTurret,
 		.turnRate = 90,
 		.hp = TURRET_MAX_HP,
 	};

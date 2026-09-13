@@ -19,6 +19,7 @@ typedef struct Turret
 	float elevation;
 	float fireDelay;
 	float fireCooldown;
+	Sound fireSound;
 	float turnRate;
 	int hp;
 } Turret;

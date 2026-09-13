@@ -1,8 +1,9 @@
 #include "turrets.h"
+#include "bullets.h"
 #include "world.h"
+#include "audio.h"
 
 #include <raymath.h>
-#include <stdio.h>
 
 static Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation)
 {
@@ -55,6 +56,7 @@ void TurretUpdate(WorldState* world, Turret* turret, float deltaTime)
 				QuaternionFromMatrix(worldElevationMat));
 			// Currently turrets fire "friendly" bullets!
 			BulletsFire(world, firePosition, muzzleVelocity, 3, false);
+			AudioPlaySoundAt(turret->fireSound, firePosition, 200, 500, 1);
 		}
 		turret->fireCooldown = turret->fireDelay;
 	}
