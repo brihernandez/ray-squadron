@@ -1,9 +1,11 @@
 #include "ship.h"
 
 #include <raymath.h>
+
+#include "world.h"
 #include "smoothdamp.h"
 
-ShipInput ShipInputNormalize(ShipInput input)
+static ShipInput ShipInputNormalize(ShipInput input)
 {
 	input.pitch = Clamp(input.pitch, -1, 1);
 	input.yaw = Clamp(input.yaw, -1, 1);
@@ -11,34 +13,34 @@ ShipInput ShipInputNormalize(ShipInput input)
 	return input;
 }
 
-Ship ShipInit(ShipHandling handling, ShipWeapons weapons)
+static Matrix BuildTransformMatrix(Vector3 position, Quaternion rotation)
+{
+	Matrix rotationMat = QuaternionToMatrix(rotation);
+	Matrix positionMat = MatrixTranslate(position.x, position.y, position.z);
+	return MatrixMultiply(rotationMat, positionMat);
+}
+
+Ship ShipInit(ShipHandling handling, ShipWeapons weapons, bool isEnemy)
 {
 	Ship ship = {0};
-
 	ship.position = (Vector3){0, 0, 0};
 	ship.rotation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
+	ship.transform = BuildTransformMatrix(ship.position, ship.rotation);
 	ship.forward = (Vector3){0, 0, 1};
 	ship.right = (Vector3){1, 0, 0};
 	ship.up = (Vector3){0, 1, 0};
 	ship.localAngularVelocity = (Vector3){0, 0, 0};
 	ship.handling = handling;
 	ship.weapons = weapons;
-
 	ship.speed = handling.maxSpeed;
-	ship.timeSinceLastShot = 0;
-	ship.barrelIndex = 0;
-
 	ship.isActive = true;
-
+	ship.isEnemy = isEnemy;
 	return ship;
 }
 
-void ShipUpdate(Ship* ship, ShipInput input, float deltaTime)
+void ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 {
 	// Add autolevel to the input.
-	ship->forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, ship->rotation);
-	ship->up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, ship->rotation);
-	ship->right = Vector3RotateByQuaternion((Vector3) { 1, 0, 0 }, ship->rotation);
 	input.roll -= ship->right.y / 2.0f;
 	input = ShipInputNormalize(input);
 
@@ -60,6 +62,35 @@ void ShipUpdate(Ship* ship, ShipInput input, float deltaTime)
 		ship->position.y = 2;
 
 	ship->bounds = ShipCalculateBounds(ship->position);
+
+	// Update the transform matrix and other shortcuts.
+	ship->transform = BuildTransformMatrix(ship->position, ship->rotation);
+	ship->forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, ship->rotation);
+	ship->up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, ship->rotation);
+	ship->right = Vector3RotateByQuaternion((Vector3) { 1, 0, 0 }, ship->rotation);
+
+	// Ship weapons.
+	ship->weapons.timeSinceLastShot += deltaTime;
+	if (input.isFiring && ship->weapons.timeSinceLastShot > ship->weapons.fireDelay)
+	{
+		Vector3 localFirePos = ship->weapons.barrels[ship->weapons.barrelIndex];
+		Vector3 worldFirePos = Vector3Transform(localFirePos, ship->transform);
+		Vector3 bulletVelocity = Vector3Scale(ship->forward, ship->speed + ship->weapons.muzzleVelocity);
+		BulletsFire(world, worldFirePos, bulletVelocity, 1, ship->isEnemy);
+		ship->weapons.barrelIndex = (ship->weapons.barrelIndex + 1) % ship->weapons.barrelCount;
+		ship->weapons.timeSinceLastShot = 0;
+
+		// TODO: Lowering the volume of enemy shots to make them distinct but this means
+		// 1. Enemy shots can overstep player shots and make the player shots sound quiet.
+		// 2. Enemy shots should probably have a unique fire sound.
+		// 3. There needs to be some kind of audio manager that adjusts pooled sounds to
+		// fade their volume based on distance.
+		if (ship->isEnemy)
+			SetSoundVolume(ship->weapons.fireSound, 0.2f);
+		else
+			SetSoundVolume(ship->weapons.fireSound, 1.0f);
+		PlaySound(ship->weapons.fireSound);
+	}
 }
 
 void ShipDraw(Ship* ship, Model* model, Color color)
@@ -99,5 +130,6 @@ void EnemyControllerUpdate(EnemyController* enemy, Ship* ship, float deltaTime)
 		enemy->input.yaw = GetRandomValue(-100, 100) / 100.0f;
 		enemy->input.roll = enemy->input.yaw * -0.2f;
 		enemy->thinkCooldown = GetRandomValue(200, 400) / 100.0f;
+		enemy->input.isFiring = !enemy->input.isFiring;
 	}
 }

@@ -2,6 +2,8 @@
 
 #include <raylib.h>
 
+struct WorldState;
+
 typedef struct ShipHandling
 {
 	float pitchRate, yawRate, rollRate;
@@ -11,23 +13,28 @@ typedef struct ShipHandling
 
 typedef struct ShipWeapons
 {
+	Vector3 barrels[2];
+	Sound fireSound;
 	float fireDelay;
 	float muzzleVelocity;
+	float timeSinceLastShot;
+	int barrelCount;
+	int barrelIndex;
 } ShipWeapons;
 
 typedef struct Ship
 {
 	Vector3 position;
 	Quaternion rotation;
+	Matrix transform;
 	Vector3 forward, right, up;
 	Vector3 localAngularVelocity;
 	BoundingBox bounds;
 	ShipHandling handling;
 	ShipWeapons weapons;
 	float speed;
-	float timeSinceLastShot;
-	int barrelIndex;
 	bool isActive;
+	bool isEnemy;
 } Ship;
 
 typedef struct ShipInput
@@ -43,10 +50,8 @@ typedef struct EnemyController
 	float thinkCooldown;
 } EnemyController;
 
-ShipInput ShipInputNormalize(ShipInput input);
-
-Ship ShipInit(ShipHandling handling, ShipWeapons weapons);
-void ShipUpdate(Ship* ship, ShipInput input, float deltaTime);
+Ship ShipInit(ShipHandling handling, ShipWeapons weapons, bool isEnemy);
+void ShipUpdate(struct WorldState* world, Ship* ship, ShipInput input, float deltaTime);
 void ShipDraw(Ship* ship, Model* model, Color color);
 
 BoundingBox ShipCalculateBounds(Vector3 position);

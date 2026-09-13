@@ -101,7 +101,7 @@ static Projectile* FindOldestBullet(WorldState* world)
 	return bulletNearestToDeath;
 }
 
-void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float timeToLive)
+void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float timeToLive, bool isEnemy)
 {
 	Projectile* bullet = FindFirstInactiveBullet(world);
 	if (bullet == NULL)
@@ -111,17 +111,24 @@ void BulletsFire(WorldState* world, Vector3 position, Vector3 velocity, float ti
 	}
 
 	bullet->isActive = true;
+	bullet->isEnemy = isEnemy;
 	bullet->timeToLive = timeToLive;
 	bullet->timeActive = 0;
 	bullet->position = position;
 	bullet->velocity = velocity;
 
+	// TODO: Muzzle flashes need a rework. They are annoying and order dependent.
+	// A separate system which works like a particle system would be ideal.
+	// Maybe they should just be particles?
 	muzzleFlashes[muzzleFlashCount] = position;
 	muzzleFlashCount += 1;
 }
 
 bool BulletsUpdate(WorldState* world, float deltaTime)
 {
+	// TODO: Muzzle flashes need a rework. They are annoying and order dependent.
+	// A separate system which works like a particle system would be ideal.
+	// Maybe they should just be particles?
 	muzzleFlashCount = 0;
 	impactCount = 0;
 
@@ -139,6 +146,11 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 		bul->isActive = bul->timeToLive > 0;
 
 		if (bul->isActive == false)
+			continue;
+
+		// TODO: Add player hit detection before this check!
+		// Enemy bullets should only care if they hit the player.
+		if (bul->isEnemy)
 			continue;
 
 		if (bul->position.y <= 0)
@@ -201,6 +213,7 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 
 		}
 	}
+
 	return explodedSomething;
 }
 
@@ -209,7 +222,8 @@ void BulletsDraw(WorldState* world)
 	// Draw bullets.
 	static const float radius = 2.f;
 	static const float length = 1.0f / 15.0f;
-	static const Color color = {255, 0, 0, 255};
+	static const Color friendColor = {255, 0, 0, 255};
+	static const Color enemyColor = {0, 255, 0, 255};
 	BeginBlendMode(BLEND_ADDITIVE);
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
@@ -222,26 +236,25 @@ void BulletsDraw(WorldState* world)
 			Vector3Add(b->position, Vector3Scale(b->velocity, length)),
 			radius * 0.3f, radius * 0.3f, 6,
 			WHITE);
-
 		DrawCylinderEx(
 			b->position,
 			Vector3Add(b->position, Vector3Scale(b->velocity, length)),
 			radius, radius, 6,
-			color);
+			world->bullets[i].isEnemy ? enemyColor : friendColor);
 	}
 
 	// Draw muzzle flashes.
 	for (int i = 0; i < muzzleFlashCount; i++)
 	{
 		DrawSphere(muzzleFlashes[i], MUZZLE_FLASH_SIZE * 0.3f, WHITE);
-		DrawSphere(muzzleFlashes[i], MUZZLE_FLASH_SIZE, color);
+		DrawSphere(muzzleFlashes[i], MUZZLE_FLASH_SIZE, friendColor);
 	}
 
 	// Draw impacts.
 	for (int i = 0; i < impactCount; i++)
 	{
 		DrawSphere(impacts[i], IMPACT_SIZE * 0.3f, WHITE);
-		DrawSphere(impacts[i], IMPACT_SIZE, color);
+		DrawSphere(impacts[i], IMPACT_SIZE, friendColor);
 	}
 
 	EndBlendMode();

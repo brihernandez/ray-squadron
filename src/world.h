@@ -7,7 +7,7 @@
 #include "bullets.h"
 #include "turrets.h"
 
-#define MAX_BULLETS 200
+#define MAX_BULLETS 250
 #define MAX_BUILDINGS 15
 #define MAX_ENEMIES 10
 #define MAX_TURRETS 30

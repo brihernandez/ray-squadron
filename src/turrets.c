@@ -46,7 +46,8 @@ void TurretUpdate(WorldState* world, Turret* turret, float deltaTime)
 			Vector3 muzzleVelocity = Vector3RotateByQuaternion(
 				(Vector3) { 0, 0, 400 },
 				QuaternionFromMatrix(worldElevationMat));
-			BulletsFire(world, firePosition, muzzleVelocity, 3);
+			// Currently turrets fire "friendly" bullets!
+			BulletsFire(world, firePosition, muzzleVelocity, 3, false);
 		}
 		turret->fireCooldown = turret->fireDelay;
 	}

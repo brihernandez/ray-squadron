@@ -118,9 +118,21 @@ int main()
 		.minSpeed = 30,
 	};
 	ShipWeapons playerShipWeapons = {
+		.barrels = {
+			{-2, 0, 5},
+			{2, 0, 5},
+		},
 		.fireDelay = 0.10f,
+		.fireSound = sfx_shoot,
 		.muzzleVelocity = 800,
+		.barrelIndex = 0,
+		.barrelCount = 2,
+		.timeSinceLastShot = 0,
 	};
+
+	ShipWeapons enemyShipWeapons = playerShipWeapons;
+	enemyShipWeapons.fireDelay *= 4;
+	enemyShipWeapons.muzzleVelocity /= 2;
 
 	Vector3 playerStartPosition = {0, 100, -1000};
 
@@ -146,14 +158,6 @@ int main()
 		.turnRate = 90,
 		.hp = TURRET_MAXHP,
 	};
-
-	// =======================================
-	// Weapons init
-	// =======================================
-	float fireDelay = 0.10f;
-	float timeSinceLastShot = 0;
-	float muzzleVelocity = 800;
-	int barrelIndex = 0;
 
 	// =======================================
 	// Camera Init
@@ -193,7 +197,7 @@ int main()
 			{
 				if (IsKeyPressed(KEY_ENTER))
 				{
-					world.playerShip = ShipInit(playerShipHandling, playerShipWeapons);
+					world.playerShip = ShipInit(playerShipHandling, playerShipWeapons, false);
 					world.playerShip.position = playerStartPosition;
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
@@ -213,7 +217,7 @@ int main()
 
 					for (int i = 0; i < MAX_ENEMIES; i++)
 					{
-						world.enemyShips[i] = ShipInit(playerShipHandling, playerShipWeapons);
+						world.enemyShips[i] = ShipInit(playerShipHandling, enemyShipWeapons, true);
 
 						world.enemyShips[i].position = (Vector3){
 							(float)GetRandomValue(-500, 500),
@@ -224,6 +228,7 @@ int main()
 						Quaternion randomRotation = QuaternionFromEuler(0, GetRandomValue(0, 360) * DEG2RAD, 0);
 						world.enemyShips[i].rotation = randomRotation;
 						world.enemyControllers[i].targetAltitude = (float)GetRandomValue(100, 200);
+						world.enemyControllers->input.isFiring = GetRandomValue(0, 1);
 					}
 
 					for (int i = 0; i < MAX_TURRETS; i++)
@@ -306,7 +311,7 @@ int main()
 				input.isFiring = IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0);
 				input.isFiring |= IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
 
-				ShipUpdate(&world.playerShip, input, deltaTime);
+				ShipUpdate(&world, &world.playerShip, input, deltaTime);
 
 				// Position chase camera.
 				Vector3 camPos = world.playerShip.position;
@@ -323,39 +328,13 @@ int main()
 				if (wasSomethingExplodedThisFrame)
 					PlaySound(sfx_explode);
 
-				// Update weapons (firing)
-				timeSinceLastShot += deltaTime;
-				if (input.isFiring && timeSinceLastShot >= fireDelay)
-				{
-					Vector3 bulletPosition = {0};
-					if (barrelIndex == 0)
-					{
-						Vector3 firePoint = Vector3Scale(world.playerShip.forward, 5);
-						firePoint = Vector3Add(Vector3Scale(world.playerShip.right, -2), firePoint);
-						bulletPosition = Vector3Add(world.playerShip.position, firePoint);
-						barrelIndex = 1;
-					}
-					else
-					{
-						Vector3 firePoint = Vector3Scale(world.playerShip.forward, 5);
-						firePoint = Vector3Add(Vector3Scale(world.playerShip.right, 2), firePoint);
-						bulletPosition = Vector3Add(world.playerShip.position, firePoint);
-						barrelIndex = 0;
-					}
-					Vector3 bulletVelocity = Vector3Scale(world.playerShip.forward, world.playerShip.speed + muzzleVelocity);
-					timeSinceLastShot = 0;
-					PlaySound(sfx_shoot);
-					float playerBulletLifetime = 1;
-					BulletsFire(&world, bulletPosition, bulletVelocity, playerBulletLifetime);
-				}
-
 				for (int i = 0; i < MAX_ENEMIES; i++)
 				{
 					if (world.enemyShips[i].isActive == false)
 						continue;
 
 					EnemyControllerUpdate(&world.enemyControllers[i], &world.enemyShips[i], deltaTime);
-					ShipUpdate(&world.enemyShips[i], world.enemyControllers[i].input, deltaTime);
+					ShipUpdate(&world, &world.enemyShips[i], world.enemyControllers[i].input, deltaTime);
 
 					// Enemy ships don't have a way to steer smartly so just constrain them to the world.
 					Ship* e = &world.enemyShips[i];
