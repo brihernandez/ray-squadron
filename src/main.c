@@ -157,6 +157,7 @@ int main()
 		.numFirepoints = 1,
 		.azimuth = 0,
 		.elevation = 0,
+		.fireSound = sfx_shoot,
 		.fireDelay = 0.5,
 		.fireCooldown = 0,
 		.turnRate = 90,

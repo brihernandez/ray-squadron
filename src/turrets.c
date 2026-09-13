@@ -1,5 +1,7 @@
 #include "turrets.h"
 #include "world.h"
+#include "audio.h"
+#include "sfx.h"
 
 #include <raymath.h>
 #include <stdio.h>
@@ -55,6 +57,8 @@ void TurretUpdate(WorldState* world, Turret* turret, float deltaTime)
 				QuaternionFromMatrix(worldElevationMat));
 			// Currently turrets fire "friendly" bullets!
 			BulletsFire(world, firePosition, muzzleVelocity, 3, false);
+			AudioPlaySound3D(turret->fireSound, firePosition, 1);
+
 		}
 		turret->fireCooldown = turret->fireDelay;
 	}

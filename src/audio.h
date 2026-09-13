@@ -2,8 +2,8 @@
 
 #include <raylib.h>
 
-#define AUDIO_MAX_SOUNDS 32
-#define AUDIO_MAX_INSTANCES 16
+#define AUDIO_MAX_SOUNDS 8
+#define AUDIO_MAX_INSTANCES 32
 
 // Registers a sound and creates a bunch of instances of it.
 // Returns index of created sound.

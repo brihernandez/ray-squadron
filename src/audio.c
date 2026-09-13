@@ -116,7 +116,6 @@ void AudioPlaySound3D(int soundIndex, Vector3 position, float volume)
 	{
 		float attenuatedVolume = Normalize(distance, source->maxDistance, source->minDistance);
 		attenuatedVolume = Clamp(attenuatedVolume, 0, 1);
-		TraceLog(LOG_INFO, "Attenuated volume: %f", attenuatedVolume);
 		SetSoundVolume(alias, attenuatedVolume * volume);
 	}
 	PlaySound(alias);
