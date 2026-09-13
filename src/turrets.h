@@ -4,7 +4,7 @@
 
 struct WorldState;
 
-#define TURRET_MAXHP 10
+#define TURRET_MAX_HP 10
 typedef struct Turret
 {
 	Vector3 position;

@@ -156,7 +156,7 @@ int main()
 		.fireDelay = 0.5,
 		.fireCooldown = 0,
 		.turnRate = 90,
-		.hp = TURRET_MAXHP,
+		.hp = TURRET_MAX_HP,
 	};
 
 	// =======================================
