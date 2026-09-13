@@ -135,6 +135,10 @@ void AudioSetListenerPosition(Vector3 position)
 
 void AudioUnloadAllSounds()
 {
-	// TODO: Free?
-	soundCount = 0;
+	for (int i = 0; i < soundCount; i++)
+	{
+		for (int k = 0; k < AUDIO_MAX_ALIASES; k++)
+			UnloadSoundAlias(sources[i].aliases[k]);
+		UnloadSound(sources[i].sound);
+	}
 }

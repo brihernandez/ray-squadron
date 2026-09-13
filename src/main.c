@@ -518,6 +518,8 @@ int main()
 		EndDrawing();
 	}
 
+	AudioUnloadAllSounds();
+
 	CloseAudioDevice();
 	CloseWindow();
 	return 0;
