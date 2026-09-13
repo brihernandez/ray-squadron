@@ -16,6 +16,8 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "bullets.h"
 #include "particles.h"
 #include "turrets.h"
+#include "audio.h"
+#include "sfx.h"
 
 #include "resource_dir.h"
 #include "smoothdamp.h"
@@ -97,10 +99,11 @@ int main()
 	PlayMusicStream(bgm);
 #endif
 
-	Sound sfx_confirm = LoadSound("confirm.ogg");
-	Sound sfx_shoot = LoadSound("shoot.ogg");
-	Sound sfx_explode = LoadSound("explode.ogg");
-	Sound sfx_win = LoadSound("win.ogg");
+	sfx_confirm = AudioRegisterSound(LoadSound("confirm.ogg"), 1);
+	sfx_shoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 250, 500, AUDIO_MAX_INSTANCES);
+	sfx_playerShoot = AudioRegisterSound3D(LoadSound("shoot.ogg"), 250, 500, AUDIO_MAX_INSTANCES);
+	sfx_explode = AudioRegisterSound3D(LoadSound("explode.ogg"), 250, 500, 4);
+	sfx_win = AudioRegisterSound(LoadSound("win.ogg"), 1);
 
 	Model mdl_ship = LoadModel("ship.glb");
 	Model mdl_turret = LoadModel("turret.glb");
@@ -123,7 +126,7 @@ int main()
 			{2, 0, 5},
 		},
 		.fireDelay = 0.10f,
-		.fireSound = sfx_shoot,
+		.fireSound = sfx_playerShoot,
 		.muzzleVelocity = 800,
 		.barrelIndex = 0,
 		.barrelCount = 2,
@@ -133,6 +136,7 @@ int main()
 	ShipWeapons enemyShipWeapons = playerShipWeapons;
 	enemyShipWeapons.fireDelay *= 4;
 	enemyShipWeapons.muzzleVelocity /= 2;
+	enemyShipWeapons.fireSound = sfx_shoot;
 
 	Vector3 playerStartPosition = {0, 100, -1000};
 
@@ -254,7 +258,7 @@ int main()
 					// Create a quicksave at the start of the level.
 					worldSave = world;
 
-					PlaySound(sfx_confirm);
+					AudioPlaySound(sfx_confirm, 1);
 				}
 				break;
 			}
@@ -317,6 +321,7 @@ int main()
 				Vector3 camPos = world.playerShip.position;
 				camPos = Vector3Add(camPos, Vector3Scale(world.playerShip.forward, -40));
 				camPos = Vector3Add(camPos, Vector3Scale(world.playerShip.up, 10));
+				AudioSetListenerPosition(camPos);
 
 				// Apply to the raylib camera.
 				camera.position = Vector3SmoothDamp(camera.position, camPos, 10, deltaTime);
@@ -326,7 +331,7 @@ int main()
 				// Update weapons (bullets)
 				bool wasSomethingExplodedThisFrame = BulletsUpdate(&world, deltaTime);
 				if (wasSomethingExplodedThisFrame)
-					PlaySound(sfx_explode);
+					AudioPlaySound(sfx_explode, 1);
 
 				for (int i = 0; i < MAX_ENEMIES; i++)
 				{
@@ -356,7 +361,7 @@ int main()
 				{
 					currentScreen = ENDING;
 					StopMusicStream(bgm);
-					PlaySound(sfx_win);
+					AudioPlaySound(sfx_win, 1);
 				}
 
 				break;

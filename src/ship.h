@@ -15,7 +15,7 @@ typedef struct ShipHandling
 typedef struct ShipWeapons
 {
 	Vector3 barrels[SHIP_MAX_BARRELS];
-	Sound fireSound;
+	int fireSound;
 	float fireDelay;
 	float muzzleVelocity;
 	float timeSinceLastShot;

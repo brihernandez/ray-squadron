@@ -36,6 +36,12 @@
     <ClInclude Include="src\turrets.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\audio.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sfx.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.c">
@@ -51,6 +57,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\turrets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\audio.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
