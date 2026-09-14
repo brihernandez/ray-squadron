@@ -1,8 +1,11 @@
 #include "ship.h"
 
+#include <raylib.h>
 #include <raymath.h>
 
 #include "world.h"
+#include "audio.h"
+
 #include "smoothdamp.h"
 
 static ShipInput ShipInputNormalize(ShipInput input)
@@ -85,16 +88,8 @@ void ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 		ship->weapons.barrelIndex = (ship->weapons.barrelIndex + 1) % ship->weapons.barrelCount;
 		ship->weapons.timeSinceLastShot = 0;
 
-		// TODO: Lowering the volume of enemy shots to make them distinct but this means
-		// 1. Enemy shots can overstep player shots and make the player shots sound quiet.
-		// 2. Enemy shots should probably have a unique fire sound.
-		// 3. There needs to be some kind of audio manager that adjusts pooled sounds to
-		// fade their volume based on distance.
-		if (ship->isEnemy)
-			SetSoundVolume(ship->weapons.fireSound, 0.2f);
-		else
-			SetSoundVolume(ship->weapons.fireSound, 1.0f);
-		PlaySound(ship->weapons.fireSound);
+		float volume = ship->isEnemy ? 0.8f : 1.0f;
+		AudioPlaySoundAt(ship->weapons.fireSound, worldFirePos, 50, 200, volume);
 	}
 }
 

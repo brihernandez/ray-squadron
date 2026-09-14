@@ -16,11 +16,12 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "bullets.h"
 #include "particles.h"
 #include "turrets.h"
+#include "audio.h"
 
 #include "resource_dir.h"
 #include "smoothdamp.h"
 
-#include <stdio.h>
+#include <stdbool.h>
 
 const int RenderWidth = 800;
 const int RenderHeight = 600;
@@ -254,7 +255,7 @@ int main()
 					// Create a quicksave at the start of the level.
 					worldSave = world;
 
-					PlaySound(sfx_confirm);
+					AudioPlaySound(sfx_confirm, 1);
 				}
 				break;
 			}
@@ -317,6 +318,7 @@ int main()
 				Vector3 camPos = world.playerShip.position;
 				camPos = Vector3Add(camPos, Vector3Scale(world.playerShip.forward, -40));
 				camPos = Vector3Add(camPos, Vector3Scale(world.playerShip.up, 10));
+				AudioSetListener(camPos);
 
 				// Apply to the raylib camera.
 				camera.position = Vector3SmoothDamp(camera.position, camPos, 10, deltaTime);
@@ -326,7 +328,7 @@ int main()
 				// Update weapons (bullets)
 				bool wasSomethingExplodedThisFrame = BulletsUpdate(&world, deltaTime);
 				if (wasSomethingExplodedThisFrame)
-					PlaySound(sfx_explode);
+					AudioPlaySound(sfx_explode, 1);
 
 				for (int i = 0; i < MAX_ENEMIES; i++)
 				{
@@ -356,7 +358,7 @@ int main()
 				{
 					currentScreen = ENDING;
 					StopMusicStream(bgm);
-					PlaySound(sfx_win);
+					AudioPlaySound(sfx_win, 1);
 				}
 
 				break;
@@ -486,6 +488,8 @@ int main()
 				BeginBlendMode(BLEND_ADDITIVE);
 				{
 					DrawText(TextFormat("%d", GetFPS()), 10, 10, 10, GREEN);
+					int chnl = AudioGetNumOfChannelsInUse();
+					DrawText( TextFormat("Channels: %02d/%02d", chnl, AUDIO_CHANNELS), 10, 20, 10, YELLOW);
 				} EndBlendMode();
 			}
 		} EndTextureMode();
