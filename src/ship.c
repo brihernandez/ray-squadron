@@ -10,6 +10,7 @@ static ShipInput ShipInputNormalize(ShipInput input)
 	input.pitch = Clamp(input.pitch, -1, 1);
 	input.yaw = Clamp(input.yaw, -1, 1);
 	input.roll = Clamp(input.roll, -1, 1);
+	input.throttle = Clamp(input.throttle, -1, 1);
 	return input;
 }
 
@@ -49,8 +50,15 @@ void ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 	input.roll -= ship->right.y / 2.0f;
 	input = ShipInputNormalize(input);
 
+	// Ship speed
+	float smoothSpeed = ship->handling.responsiveness;
+	ShipHandling handling = ship->handling;
+	float targetSpeed = input.throttle >= 0
+		? Remap(input.throttle, 0, 1, handling.cruiseSpeed, handling.maxSpeed)
+		: Remap(input.throttle, -1, 0, handling.minSpeed, handling.cruiseSpeed);
+	ship->speed = SmoothDamp(ship->speed, targetSpeed, smoothSpeed, deltaTime);
+
 	// Ship rotation.
-	float smoothSpeed = 5;
 	ship->localAngularVelocity.x = SmoothDamp(ship->localAngularVelocity.x, input.pitch * ship->handling.pitchRate, smoothSpeed, deltaTime);
 	ship->localAngularVelocity.y = SmoothDamp(ship->localAngularVelocity.y, input.yaw * ship->handling.yawRate, smoothSpeed, deltaTime);
 	ship->localAngularVelocity.z = SmoothDamp(ship->localAngularVelocity.z, input.roll * ship->handling.rollRate, smoothSpeed, deltaTime);
@@ -61,8 +69,12 @@ void ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 	ship->rotation = QuaternionNormalize(ship->rotation);
 
 	// Ship translation.
-	if (!IsKeyDown(KEY_SPACE))
+#ifdef _DEBUG
+	if (IsKeyDown(KEY_SPACE))
+		ship->speed = 0;
+#endif
 	ship->position = Vector3Add(ship->position, Vector3Scale(ship->forward, ship->speed * deltaTime));
+
 	if (ship->position.y < 2)
 		ship->position.y = 2;
 

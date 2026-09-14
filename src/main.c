@@ -114,8 +114,10 @@ int main()
 		.pitchRate = 1.5f,
 		.yawRate = 1.5f,
 		.rollRate = 3.0f,
-		.maxSpeed = 80,
-		.minSpeed = 30,
+		.maxSpeed = 160,
+		.cruiseSpeed = 80,
+		.minSpeed = 40,
+		.responsiveness = 5,
 	};
 	ShipWeapons playerShipWeapons = {
 		.barrels = {
@@ -279,10 +281,10 @@ int main()
 
 				// Rotate
 				ShipInput input = {0};
-				if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
+				if (IsKeyDown(KEY_UP)) {
 					input.pitch += 1;
 				}
-				if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
+				if (IsKeyDown(KEY_DOWN)) {
 					input.pitch -= 1;
 				}
 				if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
@@ -298,6 +300,12 @@ int main()
 				}
 				if (IsKeyDown(KEY_E)) {
 					input.roll += 1;
+				}
+				if (IsKeyDown(KEY_W)) {
+					input.throttle += 1;
+				}
+				if (IsKeyDown(KEY_S)) {
+					input.throttle -= 1;
 				}
 
 				// 2 because that's what it is on my computer!
