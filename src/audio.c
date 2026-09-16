@@ -7,10 +7,11 @@
 typedef struct AudioChannel
 {
 	Vector3 position;
-	bool isLooping;
 	Sound alias;
+	float volume;
 	float maxDist;
 	float minDist;
+	bool isLooping;
 } AudioChannel;
 
 static AudioChannel channels[AUDIO_CHANNELS] = {0};
@@ -31,7 +32,23 @@ static float GetNormalizedAttenuation(Vector3 position, float minDistance, float
 
 void AudioUpdate()
 {
+	for (int i = 0; i < AUDIO_CHANNELS; i++)
+	{
+		AudioChannel* ach = &channels[i];
+		if (!IsSoundPlaying(ach->alias))
+			continue;
 
+		float attenuation = GetNormalizedAttenuation(ach->position, ach->minDist, ach->maxDist);
+		if (attenuation <= 0)
+		{
+			StopSound(ach->alias);
+			UnloadSoundAlias(ach->alias);
+		}
+		else
+		{
+			SetSoundVolume(ach->alias, ach->volume * attenuation);
+		}
+	}
 }
 
 void AudioSetListener(Vector3 position)
@@ -83,6 +100,7 @@ int AudioPlaySoundAt(Sound sound, Vector3 position, float minDistance, float max
 	}
 
 	channels[id].position = position;
+	channels[id].volume = volume;
 	channels[id].minDist = minDistance;
 	channels[id].maxDist = maxDistance;
 	channels[id].alias = LoadSoundAlias(sound);

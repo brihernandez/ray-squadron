@@ -107,7 +107,7 @@ void ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 		ship->weapons.timeSinceLastShot = 0;
 
 		float volume = ship->isEnemy ? 0.8f : 1.0f;
-		AudioPlaySoundAt(ship->weapons.fireSound, worldFirePos, 50, 200, volume);
+		AudioPlaySoundAt(ship->weapons.fireSound, worldFirePos, 100, 250, volume);
 	}
 }
 
