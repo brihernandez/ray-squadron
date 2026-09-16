@@ -24,7 +24,7 @@ static Matrix BuildTransformMatrix(Vector3 position, Quaternion rotation)
 	return MatrixMultiply(rotationMat, positionMat);
 }
 
-Ship ShipInit(ShipHandling handling, ShipWeapons weapons, bool isEnemy)
+Ship ShipInit(ShipHandling handling, ShipWeapons weapons, int hp, bool isEnemy)
 {
 	Ship ship = {0};
 	ship.position = (Vector3){0, 0, 0};
@@ -39,6 +39,7 @@ Ship ShipInit(ShipHandling handling, ShipWeapons weapons, bool isEnemy)
 	ship.speed = handling.maxSpeed;
 	ship.isActive = true;
 	ship.isEnemy = isEnemy;
+	ship.hp = hp;
 
 	// Protect against array index out of bounds.
 	if (ship.weapons.barrelCount > SHIP_MAX_BARRELS)

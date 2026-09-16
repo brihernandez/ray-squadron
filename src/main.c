@@ -134,6 +134,9 @@ int main()
 		.timeSinceLastShot = 0,
 	};
 
+	static const int playerShipHp = 30;
+	static const int enemyShipHp = 3;
+
 	ShipWeapons enemyShipWeapons = playerShipWeapons;
 	enemyShipWeapons.fireDelay *= 4;
 	enemyShipWeapons.muzzleVelocity /= 2;
@@ -202,7 +205,7 @@ int main()
 			{
 				if (IsKeyPressed(KEY_ENTER))
 				{
-					world.playerShip = ShipInit(playerShipHandling, playerShipWeapons, false);
+					world.playerShip = ShipInit(playerShipHandling, playerShipWeapons, playerShipHp, false);
 					world.playerShip.position = playerStartPosition;
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
@@ -214,6 +217,7 @@ int main()
 							(float)GetRandomValue(-500, 500)
 						};
 						b->active = true;
+						b->hp = 8;
 						b->bounds = (BoundingBox){
 							.min = (Vector3) {b->position.x - BUILDING_SIZE, b->position.y - BUILDING_SIZE, b->position.z - BUILDING_SIZE},
 							.max = (Vector3) {b->position.x + BUILDING_SIZE, b->position.y + BUILDING_SIZE, b->position.z + BUILDING_SIZE},
@@ -222,7 +226,7 @@ int main()
 
 					for (int i = 0; i < MAX_ENEMIES; i++)
 					{
-						world.enemyShips[i] = ShipInit(playerShipHandling, enemyShipWeapons, true);
+						world.enemyShips[i] = ShipInit(playerShipHandling, enemyShipWeapons, enemyShipHp, true);
 
 						world.enemyShips[i].position = (Vector3){
 							(float)GetRandomValue(-500, 500),

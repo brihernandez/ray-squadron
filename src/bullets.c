@@ -170,16 +170,17 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 
 			if (CheckCollisionBoxSphere(world->buildings[b].bounds, bul->position, 1))
 			{
-				world->buildings[b].active = false;
+				world->buildings[b].hp -= 1;
+				if (world->buildings[b].hp <= 0)
+				{
+					world->buildings[b].active = false;
+					world->targetsDestroyed += 1;
+					SpawnExplosionParticles(world->buildings[b].position);
+					explodedSomething |= true;
+				}
 				bul->isActive = false;
-				world->targetsDestroyed += 1;
-
-				SpawnExplosionParticles(world->buildings[b].position);
-
 				impacts[impactCount] = bul->position;
 				impactCount += 1;
-				explodedSomething |= true;
-
 				break;
 			}
 		}
@@ -191,18 +192,19 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 
 			if (CheckCollisionBoxSphere(world->enemyShips[e].bounds, bul->position, 1))
 			{
-				world->enemyShips[e].isActive = false;
+				world->enemyShips[e].hp -= 1;
+				if (world->enemyShips[e].hp <= 0)
+				{
+					world->enemyShips[e].isActive = false;
+					world->targetsDestroyed += 1;
+					SpawnSparkParticles(
+						world->enemyShips[e].position,
+						Vector3Scale(world->enemyShips[e].forward, world->enemyShips->speed));
+					explodedSomething |= true;
+				}
 				bul->isActive = false;
-				world->targetsDestroyed += 1;
-
-				SpawnSparkParticles(
-					world->enemyShips[e].position,
-					Vector3Scale(world->enemyShips[e].forward, world->enemyShips->speed));
-
 				impacts[impactCount] = bul->position;
 				impactCount += 1;
-				explodedSomething |= true;
-
 				break;
 			}
 		}

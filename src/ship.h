@@ -36,6 +36,7 @@ typedef struct Ship
 	BoundingBox bounds;
 	ShipHandling handling;
 	ShipWeapons weapons;
+	int hp;
 	float speed;
 	bool isActive;
 	bool isEnemy;
@@ -55,7 +56,7 @@ typedef struct EnemyController
 	float thinkCooldown;
 } EnemyController;
 
-Ship ShipInit(ShipHandling handling, ShipWeapons weapons, bool isEnemy);
+Ship ShipInit(ShipHandling handling, ShipWeapons weapons, int hp, bool isEnemy);
 void ShipUpdate(struct WorldState* world, Ship* ship, ShipInput input, float deltaTime);
 void ShipDraw(Ship* ship, Model* model, Color color);
 

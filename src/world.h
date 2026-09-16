@@ -17,6 +17,7 @@
 typedef struct Building {
 	Vector3 position;
 	BoundingBox bounds;
+	int hp;
 	bool active;
 } Building;
 
