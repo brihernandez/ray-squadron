@@ -1,6 +1,7 @@
 #pragma once
 
 #include <raylib.h>
+#include <stdbool.h>
 
 struct WorldState;
 
@@ -8,7 +9,9 @@ typedef struct ShipHandling
 {
 	float pitchRate, yawRate, rollRate;
 	float maxSpeed;
+	float cruiseSpeed;
 	float minSpeed;
+	float responsiveness;
 } ShipHandling;
 
 #define SHIP_MAX_BARRELS 4
@@ -41,6 +44,7 @@ typedef struct Ship
 typedef struct ShipInput
 {
 	float pitch, yaw, roll;
+	float throttle;
 	bool isFiring;
 } ShipInput;
 
