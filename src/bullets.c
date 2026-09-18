@@ -1,10 +1,9 @@
 #include "bullets.h"
 #include "world.h"
 #include "particles.h"
+#include "turrets.h"
 
 #include <raymath.h>
-
-#include <stdio.h>
 
 #define MUZZLE_FLASH_SIZE 6
 static Vector3 muzzleFlashes[MAX_BULLETS];
@@ -163,6 +162,7 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 			continue;
 		}
 
+		bool hitSomething = false;
 		for (int b = 0; b < MAX_BUILDINGS; b++)
 		{
 			if (!world->buildings[b].active)
@@ -178,9 +178,7 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 					SpawnExplosionParticles(world->buildings[b].position);
 					explodedSomething |= true;
 				}
-				bul->isActive = false;
-				impacts[impactCount] = bul->position;
-				impactCount += 1;
+				hitSomething = true;
 				break;
 			}
 		}
@@ -202,9 +200,7 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 						Vector3Scale(world->enemyShips[e].forward, world->enemyShips->speed));
 					explodedSomething |= true;
 				}
-				bul->isActive = false;
-				impacts[impactCount] = bul->position;
-				impactCount += 1;
+				hitSomething = true;
 				break;
 			}
 		}
@@ -222,14 +218,19 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 				{
 					tur->isActive = false;
 					//world->targetsDestroyed += 1;
-					SpawnExplosionParticles(tur->position);
+					SpawnExplosionParticles(TurretGetCenter(tur));
 					explodedSomething |= true;
 				}
-				bul->isActive = false;
-				impacts[impactCount] = bul->position;
-				impactCount += 1;
+				hitSomething = true;
 				break;
 			}
+		}
+
+		if (hitSomething)
+		{
+			bul->isActive = false;
+			impacts[impactCount] = bul->position;
+			impactCount += 1;
 		}
 	}
 

@@ -368,7 +368,10 @@ int main()
 				}
 
 				for (int i = 0; i < MAX_TURRETS; i++)
-					TurretUpdate(&world, &world.turrets[i], GetFrameTime());
+				{
+					if (world.turrets[i].isActive)
+						TurretUpdate(&world, &world.turrets[i], GetFrameTime());
+				}
 
 				ParticlesUpdate(deltaTime);
 

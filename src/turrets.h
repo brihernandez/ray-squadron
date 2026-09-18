@@ -28,5 +28,7 @@ typedef struct Turret
 } Turret;
 
 BoundingBox TurretGetBounds(Turret* turret, Vector3 position);
+Vector3 TurretGetCenter(Turret* turret);
+
 void TurretUpdate(struct WorldState* world, Turret* turret, float deltaTime);
 void TurretDraw(Model* model, Turret* turret);

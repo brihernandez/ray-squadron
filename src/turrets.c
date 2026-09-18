@@ -16,6 +16,16 @@ BoundingBox TurretGetBounds(Turret* turret, Vector3 position)
 	return bounds;
 }
 
+Vector3 TurretGetCenter(Turret* turret)
+{
+	Vector3 center = {
+		turret->position.x,
+		turret->position.y + turret->size.y / 2,
+		turret->position.z
+	};
+	return center;
+}
+
 static Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation)
 {
 	Matrix transform = MatrixTranslate(position.x, position.y, position.z);
