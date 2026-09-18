@@ -13,6 +13,8 @@ static int muzzleFlashCount = 0;
 static Vector3 impacts[MAX_BULLETS];
 static int impactCount = 0;
 
+#define BULLET_RADIUS 4
+
 static float GetRandomFloat(float min, float max)
 {
 	float val = (float)GetRandomValue(0, 1000);
@@ -168,7 +170,7 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 			if (!world->buildings[b].active)
 				continue;
 
-			if (CheckCollisionBoxSphere(world->buildings[b].bounds, bul->position, 1))
+			if (CheckCollisionBoxSphere(world->buildings[b].bounds, bul->position, BULLET_RADIUS))
 			{
 				world->buildings[b].hp -= 1;
 				if (world->buildings[b].hp <= 0)
@@ -188,7 +190,7 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 			if (!world->enemyShips[e].isActive)
 				continue;
 
-			if (CheckCollisionBoxSphere(world->enemyShips[e].bounds, bul->position, 1))
+			if (CheckCollisionBoxSphere(world->enemyShips[e].bounds, bul->position, BULLET_RADIUS))
 			{
 				world->enemyShips[e].hp -= 1;
 				if (world->enemyShips[e].hp <= 0)
@@ -211,7 +213,7 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 				continue;
 
 			Turret* tur = &world->turrets[t];
-			if (CheckCollisionBoxSphere(world->turrets[t].bounds, bul->position, 1))
+			if (CheckCollisionBoxSphere(world->turrets[t].bounds, bul->position, BULLET_RADIUS))
 			{
 				tur->hp -= 1;
 				if (tur->hp <= 0)
