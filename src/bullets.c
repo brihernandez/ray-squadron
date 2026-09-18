@@ -280,4 +280,13 @@ void BulletsDraw(WorldState* world)
 	}
 
 	EndBlendMode();
+
+#ifdef SHOW_HITBOXES
+	// Draw this after the blend modes to get consistent drawing with the rest of the bounds.
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		if (world->bullets[i].isActive)
+			DrawSphereWires(world->bullets[i].position, BULLET_RADIUS, 4, 4, RED);
+	}
+#endif
 }

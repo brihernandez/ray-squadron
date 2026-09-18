@@ -3,6 +3,7 @@
 #include "world.h"
 #include "audio.h"
 
+#include <raylib.h>
 #include <raymath.h>
 
 BoundingBox TurretGetBounds(Turret* turret, Vector3 position)
@@ -102,4 +103,8 @@ void TurretDraw(Model* model, Turret* turret)
 	DrawMesh(model->meshes[0], model->materials[0], worldMat);
 	DrawMesh(model->meshes[1], model->materials[0], worldAzimuthMat);
 	DrawMesh(model->meshes[2], model->materials[0], worldElevationMat);
+
+#ifdef SHOW_HITBOXES
+	DrawBoundingBox(turret->bounds, RED);
+#endif
 }

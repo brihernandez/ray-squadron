@@ -14,6 +14,8 @@
 
 #define BUILDING_SIZE 20
 
+//#define SHOW_HITBOXES
+
 typedef struct Building {
 	Vector3 position;
 	BoundingBox bounds;

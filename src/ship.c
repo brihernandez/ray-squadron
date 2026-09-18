@@ -120,6 +120,10 @@ void ShipDraw(Ship* ship, Model* model, Color color)
 	Matrix transform = MatrixTranslate(ship->position.x, ship->position.y, ship->position.z);
 	model->transform = MatrixMultiply(QuaternionToMatrix(visualRotation), transform);
 	DrawModel(*model, Vector3Zero(), 1, color);
+
+#ifdef SHOW_HITBOXES
+	DrawBoundingBox(ship->bounds, RED);
+#endif
 }
 
 BoundingBox ShipCalculateBounds(Vector3 position)
