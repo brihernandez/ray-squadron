@@ -10,6 +10,8 @@ typedef struct Turret
 {
 	Vector3 position;
 	Quaternion rotation;
+	BoundingBox bounds;
+	Vector3 size;
 	Vector3 targetPos;
 	Vector3 azimuthLocalPosition;
 	Vector3 elevationLocalPosition;
@@ -22,7 +24,9 @@ typedef struct Turret
 	Sound fireSound;
 	float turnRate;
 	int hp;
+	bool isActive;
 } Turret;
 
+BoundingBox TurretGetBounds(Turret* turret, Vector3 position);
 void TurretUpdate(struct WorldState* world, Turret* turret, float deltaTime);
 void TurretDraw(Model* model, Turret* turret);

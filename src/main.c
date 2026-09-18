@@ -153,6 +153,8 @@ int main()
 	Turret turretTemplate = {
 		.position = {0, 0, 500},
 		.rotation = QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, 180 * DEG2RAD),
+		.bounds = {0},
+		.size = {30, 50, 30},
 		.targetPos = {0, 150, 0},
 		.azimuthLocalPosition = {0, 32, 0},
 		.elevationLocalPosition = {0, 10, 0},
@@ -210,17 +212,17 @@ int main()
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
-						Building* b = &world.buildings[i];
-						b->position = (Vector3){
+						Building* bld = &world.buildings[i];
+						bld->position = (Vector3){
 							(float)GetRandomValue(-500, 500),
 							BUILDING_SIZE,
 							(float)GetRandomValue(-500, 500)
 						};
-						b->active = true;
-						b->hp = 8;
-						b->bounds = (BoundingBox){
-							.min = (Vector3) {b->position.x - BUILDING_SIZE, b->position.y - BUILDING_SIZE, b->position.z - BUILDING_SIZE},
-							.max = (Vector3) {b->position.x + BUILDING_SIZE, b->position.y + BUILDING_SIZE, b->position.z + BUILDING_SIZE},
+						bld->active = true;
+						bld->hp = 8;
+						bld->bounds = (BoundingBox){
+							.min = (Vector3) {bld->position.x - BUILDING_SIZE, bld->position.y - BUILDING_SIZE, bld->position.z - BUILDING_SIZE},
+							.max = (Vector3) {bld->position.x + BUILDING_SIZE, bld->position.y + BUILDING_SIZE, bld->position.z + BUILDING_SIZE},
 						};
 					}
 
@@ -242,14 +244,17 @@ int main()
 
 					for (int i = 0; i < MAX_TURRETS; i++)
 					{
-						world.turrets[i] = turretTemplate;
-						world.turrets[i].fireCooldown = GetRandomFloat(0, turretTemplate.fireDelay);
-						world.turrets[i].azimuth = GetRandomFloat(0, 360 * DEG2RAD);
-						world.turrets[i].position = (Vector3){
+						Turret* tur = &world.turrets[i];
+						*tur = turretTemplate;
+						tur->fireCooldown = GetRandomFloat(0, turretTemplate.fireDelay);
+						tur->azimuth = GetRandomFloat(0, 360 * DEG2RAD);
+						tur->position = (Vector3){
 							GetRandomFloat(-2000, 2000),
 							0,
 							GetRandomFloat(-2000, 2000),
 						};
+						tur->bounds = TurretGetBounds(tur, tur->position);
+						tur->isActive = true;
 					}
 
 					BulletsInit(&world);
@@ -446,7 +451,10 @@ int main()
 					ParticlesDraw();
 
 					for (int i = 0; i < MAX_TURRETS; i++)
-						TurretDraw(&mdl_turret, &world.turrets[i]);
+					{
+						if (world.turrets[i].isActive)
+							TurretDraw(&mdl_turret, &world.turrets[i]);
+					}
 
 				} EndMode3D();
 

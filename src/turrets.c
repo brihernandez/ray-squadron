@@ -5,6 +5,17 @@
 
 #include <raymath.h>
 
+BoundingBox TurretGetBounds(Turret* turret, Vector3 position)
+{
+	float halfX = turret->size.x / 2;
+	float halfZ = turret->size.z / 2;
+	BoundingBox bounds = {
+		.min = Vector3Subtract(position, (Vector3) {halfX, 0, halfZ}),
+		.max = Vector3Add(position, (Vector3) {halfX, turret->size.y, halfZ}),
+	};
+	return bounds;
+}
+
 static Matrix MatrixBuildTransform(Vector3 position, Quaternion rotation)
 {
 	Matrix transform = MatrixTranslate(position.x, position.y, position.z);

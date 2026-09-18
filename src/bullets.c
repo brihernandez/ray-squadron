@@ -211,8 +211,25 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 
 		for (int t = 0; t < MAX_TURRETS; t++)
 		{
-			// Do hit detection on the turrets.
+			if (!world->turrets[t].isActive)
+				continue;
 
+			Turret* tur = &world->turrets[t];
+			if (CheckCollisionBoxSphere(world->turrets[t].bounds, bul->position, 1))
+			{
+				tur->hp -= 1;
+				if (tur->hp <= 0)
+				{
+					tur->isActive = false;
+					//world->targetsDestroyed += 1;
+					SpawnExplosionParticles(tur->position);
+					explodedSomething |= true;
+				}
+				bul->isActive = false;
+				impacts[impactCount] = bul->position;
+				impactCount += 1;
+				break;
+			}
 		}
 	}
 
