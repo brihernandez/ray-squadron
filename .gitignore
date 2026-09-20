@@ -405,3 +405,6 @@ Makefile
 *.swo
 *.swn
 /build/compile_commands.json
+
+# Builds that I leave in the root
+/*.zip
