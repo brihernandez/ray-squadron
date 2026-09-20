@@ -262,6 +262,8 @@ int main(void)
 					if (world.targetsDestroyed > 0)
 						PlayMusicStream(bgm);
 
+					ParticlesClear();
+
 					currentScreen = GAMEPLAY;
 					world.targetsDestroyed = 0;
 
