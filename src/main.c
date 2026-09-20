@@ -50,6 +50,17 @@ void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 void DrawText3D(Camera camera, Vector3 position, const char* text, Color color);
 void DrawGridColored(int slices, float spacing, Color color);
 
+static Vector2 HandleStickDeadzone(Vector2 input, float deadzone)
+{
+	float magnitude = Vector2Length(input);
+	if (magnitude < deadzone)
+		return (Vector2) { 0, 0 };
+
+	Vector2 direction = Vector2Normalize(input);
+	magnitude = Normalize(magnitude, deadzone, 1.0f);
+	return Vector2Scale(direction, magnitude);
+}
+
 static void DrawAnimatedBillboard(
 	Camera camera,
 	Texture2D texture,
@@ -323,11 +334,16 @@ int main(void)
 				}
 
 				// 2 because that's what it is on my computer!
-				int gamepadIndex = 2;
-				input.pitch -= GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_Y);
-				float gamepadYaw = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_X);
-				float gamepadRoll = gamepadYaw * -0.2f;
-				input.yaw -= gamepadYaw;
+				const int gamepadIndex = 2;
+				const float deadzone = 0.15f;
+				Vector2 gamepadStick = {
+					GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_X),
+					GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_Y),
+				};
+				gamepadStick = HandleStickDeadzone(gamepadStick, deadzone);
+				input.pitch -= gamepadStick.y;
+				input.yaw -= gamepadStick.x;
+				float gamepadRoll = gamepadStick.x * -0.2f;
 				input.roll -= gamepadRoll;
 
 				input.isFiring = IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0);
