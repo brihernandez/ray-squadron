@@ -4,7 +4,7 @@
 
 struct WorldState;
 
-#define TURRET_MAX_HP 10
+#define TURRET_MAX_HP 5
 #define TURRET_MAX_FIREPOINTS 2
 typedef struct Turret
 {

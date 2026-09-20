@@ -220,7 +220,8 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 				{
 					tur->isActive = false;
 					//world->targetsDestroyed += 1;
-					SpawnExplosionParticles(TurretGetCenter(tur));
+					Vector3 explosionPos = Vector3Add(TurretGetCenter(tur), (Vector3) { 0, 10, 0 });
+					SpawnExplosionParticles(explosionPos);
 					explodedSomething |= true;
 				}
 				hitSomething = true;

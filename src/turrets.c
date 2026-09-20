@@ -90,19 +90,25 @@ void TurretDraw(Model* model, Turret* turret)
 		turret->position,
 		turret->rotation);
 
-	Matrix azimuthMat = MatrixBuildTransform(
-		(Vector3) { 0, 32, 0 },
-		QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, turret->azimuth));
-	Matrix worldAzimuthMat = MatrixMultiply(azimuthMat, worldMat);
+	// Only draw the turret stuff if the turret is still alive.
+	if (turret->isActive)
+	{
+		Matrix azimuthMat = MatrixBuildTransform(
+			(Vector3) { 0, 32, 0 },
+			QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, turret->azimuth));
+		Matrix worldAzimuthMat = MatrixMultiply(azimuthMat, worldMat);
 
-	Matrix elevationMat = MatrixBuildTransform(
-		(Vector3) { 0, 10, 0 },
-		QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, turret->elevation));
-	Matrix worldElevationMat = MatrixMultiply(elevationMat, worldAzimuthMat);
+		Matrix elevationMat = MatrixBuildTransform(
+			(Vector3) { 0, 10, 0 },
+			QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, turret->elevation));
+		Matrix worldElevationMat = MatrixMultiply(elevationMat, worldAzimuthMat);
 
+		DrawMesh(model->meshes[1], model->materials[0], worldAzimuthMat);
+		DrawMesh(model->meshes[2], model->materials[0], worldElevationMat);
+	}
+
+	// The base of the turret always gets drawn even if the turret is dead.
 	DrawMesh(model->meshes[0], model->materials[0], worldMat);
-	DrawMesh(model->meshes[1], model->materials[0], worldAzimuthMat);
-	DrawMesh(model->meshes[2], model->materials[0], worldElevationMat);
 
 #ifdef SHOW_HITBOXES
 	DrawBoundingBox(turret->bounds, RED);

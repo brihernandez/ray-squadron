@@ -454,10 +454,7 @@ int main(void)
 					ParticlesDraw();
 
 					for (int i = 0; i < MAX_TURRETS; i++)
-					{
-						if (world.turrets[i].isActive)
-							TurretDraw(&mdl_turret, &world.turrets[i]);
-					}
+						TurretDraw(&mdl_turret, &world.turrets[i]);
 
 				} EndMode3D();
 
