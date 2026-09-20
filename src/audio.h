@@ -13,11 +13,11 @@
 //	float maxDist;
 //} SoundEffect;
 
-void AudioUpdate();
+void AudioUpdate(void);
 void AudioSetListener(Vector3 position);
 
 int AudioPlaySound(Sound sound, float volume);
 int AudioPlaySoundAt(Sound sound, Vector3 position, float minDistance, float maxDistance, float volume);
 void AudioStopSound(int channelId);
 
-int AudioGetNumOfChannelsInUse();
+int AudioGetNumOfChannelsInUse(void);

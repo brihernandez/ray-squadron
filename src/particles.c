@@ -22,7 +22,7 @@ void ParticlesEmit(Particle* template)
 	nextParticleIndex = (nextParticleIndex + 1) % MAX_PARTICLES;
 }
 
-void ParticlesClear()
+void ParticlesClear(void)
 {
 	memset(particles, 0, sizeof(Particle) * MAX_PARTICLES);
 	nextParticleIndex = 0;
@@ -48,7 +48,7 @@ void ParticlesUpdate(float deltaTime)
 	}
 }
 
-void ParticlesDraw()
+void ParticlesDraw(void)
 {
 	for (int i = 0; i < MAX_PARTICLES; i++)
 	{

@@ -24,6 +24,6 @@ typedef struct Particle
 } Particle;
 
 void ParticlesEmit(Particle* template);
-void ParticlesClear();
+void ParticlesClear(void);
 void ParticlesUpdate(float deltaTime);
-void ParticlesDraw();
+void ParticlesDraw(void);

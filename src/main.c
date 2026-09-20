@@ -74,7 +74,7 @@ static void DrawAnimatedBillboard(
 	DrawBillboardRec(camera, texture, rec, position, quadSize, color);
 }
 
-int main()
+int main(void)
 {
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_MSAA_4X_HINT);

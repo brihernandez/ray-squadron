@@ -30,7 +30,7 @@ static float GetNormalizedAttenuation(Vector3 position, float minDistance, float
 	return attenuation;
 }
 
-void AudioUpdate()
+void AudioUpdate(void)
 {
 	for (int i = 0; i < AUDIO_CHANNELS; i++)
 	{
@@ -56,7 +56,7 @@ void AudioSetListener(Vector3 position)
 	listenerPosition = position;
 }
 
-static int FindFreeChannel()
+static int FindFreeChannel(void)
 {
 	for (int i = 0; i < AUDIO_CHANNELS; i++)
 	{
@@ -119,7 +119,7 @@ void AudioStopSound(int channelId)
 	}
 }
 
-int AudioGetNumOfChannelsInUse()
+int AudioGetNumOfChannelsInUse(void)
 {
 	int count = 0;
 	for (int i = 0; i < AUDIO_CHANNELS; i++)
