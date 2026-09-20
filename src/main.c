@@ -349,6 +349,7 @@ int main(void)
 				input.isFiring = IsKeyDown(KEY_LEFT_CONTROL) || IsMouseButtonDown(0);
 				input.isFiring |= IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
 
+				// Move player ship.
 				ShipUpdate(&world, &world.playerShip, input, deltaTime);
 
 				// Position chase camera.
@@ -456,23 +457,16 @@ int main(void)
 						ShipDraw(&world.enemyShips[i], &mdl_ship, RED);
 					}
 
-					BulletsDraw(&world);
-					ShipDraw(&world.playerShip, &mdl_ship, WHITE);
-
-					//DrawAnimatedBillboard(
-					//	camera,
-					//	tex_expl,
-					//	4, 4,
-					//	(Vector3){0, 100, 200},
-					//	50,
-					//	GetTime(),
-					//	12,
-					//	WHITE);
-
-					ParticlesDraw();
-
+					// Draw turrets.
 					for (int i = 0; i < MAX_TURRETS; i++)
 						TurretDraw(&mdl_turret, &world.turrets[i]);
+
+					// Draw player ship specifically. There's no reason it needs to be done
+					// separately other than that's just how the data is stored.
+					ShipDraw(&world.playerShip, &mdl_ship, WHITE);
+
+					BulletsDraw(&world);
+					ParticlesDraw();
 
 				} EndMode3D();
 
