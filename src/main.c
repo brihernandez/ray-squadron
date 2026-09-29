@@ -117,7 +117,6 @@ int main(void)
 
 	Model mdl_ship = LoadModel("ship.glb");
 	Model mdl_turret = LoadModel("turret.glb");
-	Texture tex_expl = LoadTexture("explosion.png");
 
 	// =======================================
 	// Player init
