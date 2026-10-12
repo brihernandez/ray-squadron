@@ -48,7 +48,6 @@ static float GetRandomFloat(float min, float max)
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 void DrawText3D(Camera camera, Vector3 position, const char* text, Color color);
-void DrawCheckerGrid(int tiles, float tileSize, Color color);
 void DrawGridColored(int slices, float spacing, Color color);
 
 static Vector2 HandleStickDeadzone(Vector2 input, float deadzone)
@@ -118,6 +117,7 @@ int main(void)
 
 	Model mdl_ship = LoadModel("ship.glb");
 	Model mdl_turret = LoadModel("turret.glb");
+	Model mdl_checkerGrid = LoadModel("checkergrid.glb");
 
 	// =======================================
 	// Player init
@@ -435,20 +435,9 @@ int main(void)
 				Color sky = {135, 180, 215, 255};
 				Color ground = {0, 117, 44, 255};
 				ClearBackground(sky);
-
 				BeginMode3D(camera);
 				{
-					// Draw the background on a separate pass so that depth can be disabled.
-					rlDisableDepthMask();
-					DrawPlane(Vector3Zero(), (Vector2) { 10000, 10000 }, ground);
-					DrawCheckerGrid(100, 100, ColorLerp(ground, BLACK, 0.1f));
-
-				} EndMode3D();
-
-				BeginMode3D(camera);
-				{
-					// Depth needs to be reenabled.
-					rlEnableDepthMask();
+					DrawModel(mdl_checkerGrid, (Vector3) { 0, 0, 0 }, 10, ground);
 
 					// Draw buildings.
 					for (int i = 0; i < MAX_BUILDINGS; i++)
@@ -596,21 +585,6 @@ void DrawText3D(Camera camera, Vector3 position, const char* text, Color color)
 
 	Vector2 screenPos = GetWorldToScreenEx(position, camera, RenderWidth, RenderHeight);
 	DrawText(text, (int)screenPos.x, (int)screenPos.y, 10, color);
-}
-
-void DrawCheckerGrid(int tiles, float tileSize, Color color)
-{
-	Vector2 size = {tileSize, tileSize};
-	for (int x = -tiles / 2; x < tiles / 2; x++)
-	{
-		for (int y = -tiles / 2; y < tiles / 2; y++)
-		{
-			Vector3 position = {tileSize * x * 2, 0, tileSize * y};
-			if (y % 2 == 0)
-				position.x += tileSize;
-			DrawPlane(position, size, color);
-		}
-	}
 }
 
 void DrawGridColored(int slices, float spacing, Color color)
