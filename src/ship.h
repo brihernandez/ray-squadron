@@ -70,6 +70,9 @@ void ShipExplode(Ship* ship);
 bool ShipUpdate(struct WorldState* world, Ship* ship, ShipInput input, float deltaTime);
 void ShipDraw(Ship* ship, Model* model, Color color);
 
+// Sets ship position and automatically updates bounds and transform.
+void ShipSetPosition(Ship* ship, Vector3 position);
+
 BoundingBox ShipCalculateBounds(Vector3 position);
 
 void EnemyControllerUpdate(EnemyController* enemy, Ship* ship, float deltaTime);

@@ -219,7 +219,7 @@ int main(void)
 				if (IsKeyPressed(KEY_ENTER))
 				{
 					world.playerShip = ShipInit(playerShipHandling, playerShipWeapons, playerShipHp, false);
-					world.playerShip.position = playerStartPosition;
+					ShipSetPosition(&world.playerShip, playerStartPosition);
 
 					for (int i = 0; i < MAX_BUILDINGS; i++)
 					{
@@ -241,11 +241,12 @@ int main(void)
 					{
 						world.enemyShips[i] = ShipInit(playerShipHandling, enemyShipWeapons, enemyShipHp, true);
 
-						world.enemyShips[i].position = (Vector3){
+						Vector3 position = {
 							(float)GetRandomValue(-500, 500),
 							(float)GetRandomValue(50, 200),
 							(float)GetRandomValue(-500, 500),
 						};
+						ShipSetPosition(&world.enemyShips[i], position);
 
 						Quaternion randomRotation = QuaternionFromEuler(0, GetRandomValue(0, 360) * DEG2RAD, 0);
 						world.enemyShips[i].rotation = randomRotation;
@@ -381,12 +382,16 @@ int main(void)
 					if (world.enemyShips[i].state == SHIPSTATE_FLIGHT)
 					{
 						Ship* e = &world.enemyShips[i];
-						if (e->position.x > 500) e->position.x = 500;
-						if (e->position.x < -500) e->position.x = -500;
-						if (e->position.y > 200) e->position.y = 200;
-						if (e->position.y < 10) e->position.y = 10;
-						if (e->position.z > 500) e->position.z = 500;
-						if (e->position.z < -500) e->position.z = -500;
+						Vector3 startPosition = e->position;
+						Vector3 position = startPosition;
+						if (position.x > 500) position.x = 500;
+						if (position.x < -500) position.x = -500;
+						if (position.y > 200) position.y = 200;
+						if (position.y < 10) position.y = 10;
+						if (position.z > 500) position.z = 500;
+						if (position.z < -500) position.z = -500;
+						if (!Vector3Equals(startPosition, position))
+							ShipSetPosition(e, position);
 					}
 				}
 

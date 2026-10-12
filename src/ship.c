@@ -68,16 +68,15 @@ Ship ShipInit(ShipHandling handling, ShipWeapons weapons, int hp, bool isEnemy)
 {
 	Ship ship = {0};
 	ship.rotation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
-	ship.transform = BuildTransformMatrix(ship.position, ship.rotation);
-	ship.forward = (Vector3){0, 0, 1};
-	ship.right = (Vector3){1, 0, 0};
-	ship.up = (Vector3){0, 1, 0};
 	ship.handling = handling;
 	ship.weapons = weapons;
 	ship.speed = handling.maxSpeed;
 	ship.state = SHIPSTATE_FLIGHT;
 	ship.isEnemy = isEnemy;
 	ship.hp = hp;
+
+	ShipUpdateTransform(&ship);
+	ship.bounds = ShipCalculateBounds(ship.position);
 
 	// Protect against array index out of bounds.
 	if (ship.weapons.barrelCount > SHIP_MAX_BARRELS)
@@ -137,8 +136,8 @@ static bool ShipUpdateFlight(WorldState* world, Ship* ship, ShipInput input, flo
 	input = ShipInputNormalize(input);
 
 	// Speed control.
-	float smoothSpeed = ship->handling.responsiveness;
-	ShipHandling* handling = &ship->handling;
+	const ShipHandling* handling = &ship->handling;
+	float smoothSpeed = handling->responsiveness;
 	float targetSpeed = input.throttle >= 0
 		? Remap(input.throttle, 0, 1, handling->cruiseSpeed, handling->maxSpeed)
 		: Remap(input.throttle, -1, 0, handling->minSpeed, handling->cruiseSpeed);
@@ -146,21 +145,21 @@ static bool ShipUpdateFlight(WorldState* world, Ship* ship, ShipInput input, flo
 
 	// Cruise speed is the optimal turn rate. Faster/slower will incur a penalty to turn rate.
 	const float turnPenalty = 0.67f;
-	float turnSpeedRamp = ship->speed > ship->handling.cruiseSpeed
-		? Remap(ship->speed, ship->handling.cruiseSpeed, ship->handling.maxSpeed, 1.0f, turnPenalty)
-		: Remap(ship->speed, ship->handling.minSpeed, ship->handling.cruiseSpeed, turnPenalty, 1.0f);
+	float turnSpeedRamp = ship->speed > handling->cruiseSpeed
+		? Remap(ship->speed, handling->cruiseSpeed, handling->maxSpeed, 1.0f, turnPenalty)
+		: Remap(ship->speed, handling->minSpeed, handling->cruiseSpeed, turnPenalty, 1.0f);
 
 	// Ship rotation.
 	ship->localAngularVelocity.x = SmoothDamp(
 		ship->localAngularVelocity.x,
-		input.pitch * ship->handling.pitchRate * turnSpeedRamp,
+		input.pitch * handling->pitchRate * turnSpeedRamp,
 		smoothSpeed, deltaTime);
 	ship->localAngularVelocity.y = SmoothDamp(
 		ship->localAngularVelocity.y,
-		input.yaw * ship->handling.yawRate * turnSpeedRamp,
+		input.yaw * handling->yawRate * turnSpeedRamp,
 		smoothSpeed, deltaTime);
 	ship->localAngularVelocity.z = SmoothDamp(
-		ship->localAngularVelocity.z, input.roll * ship->handling.rollRate * turnSpeedRamp,
+		ship->localAngularVelocity.z, input.roll * handling->rollRate * turnSpeedRamp,
 		smoothSpeed, deltaTime);
 
 	ship->rotation = RotateQuaternionWithLocalAngularVelocity(
@@ -172,13 +171,11 @@ static bool ShipUpdateFlight(WorldState* world, Ship* ship, ShipInput input, flo
 	if (IsKeyDown(KEY_SPACE))
 		ship->speed = 0;
 #endif
-	ship->position = Vector3Add(ship->position, Vector3Scale(ship->forward, ship->speed * deltaTime));
 
-	if (ship->position.y < 2)
-		ship->position.y = 2;
-
-	// Update the transform matrix and other shortcuts.
-	ShipUpdateTransform(ship);
+	Vector3 position = Vector3Add(ship->position, Vector3Scale(ship->forward, ship->speed * deltaTime));
+	if (position.y < 2)
+		position.y = 2;
+	ShipSetPosition(ship, position);
 
 	// Ship weapons.
 	ShipWeapons* weapons = &ship->weapons;
@@ -228,13 +225,13 @@ static bool ShipUpdateCrashing(WorldState* world, Ship* ship, float deltaTime)
 	ship->crashVelocity.y -= 50.0f * deltaTime;
 	if (ship->crashVelocity.y < terminalVelocity)
 		ship->crashVelocity.y = terminalVelocity;
-	ship->position = Vector3Add(ship->position, Vector3Scale(ship->crashVelocity, deltaTime));
+	Vector3 position = Vector3Add(ship->position, Vector3Scale(ship->crashVelocity, deltaTime));
 
 	ship->rotation = RotateQuaternionWithLocalAngularVelocity(
 		ship->rotation, ship->localAngularVelocity,
 		deltaTime);
 
-	ShipUpdateTransform(ship);
+	ShipSetPosition(ship, position);
 
 	return false;
 }
@@ -250,9 +247,8 @@ bool ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 		case SHIPSTATE_CRASHING:
 			wasExploded = ShipUpdateCrashing(world, ship, deltaTime);
 			break;
-	};
+	}
 
-	ship->bounds = ShipCalculateBounds(ship->position);
 	return wasExploded;
 }
 
@@ -267,6 +263,13 @@ void ShipDraw(Ship* ship, Model* model, Color color)
 #ifdef SHOW_HITBOXES
 	DrawBoundingBox(ship->bounds, RED);
 #endif
+}
+
+void ShipSetPosition(Ship* ship, Vector3 position)
+{
+	ship->position = position;
+	ship->bounds = ShipCalculateBounds(position);
+	ShipUpdateTransform(ship);
 }
 
 BoundingBox ShipCalculateBounds(Vector3 position)
