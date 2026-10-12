@@ -26,19 +26,27 @@ typedef struct ShipWeapons
 	int barrelIndex;
 } ShipWeapons;
 
+typedef enum ShipState
+{
+	SHIPSTATE_INACTIVE,
+	SHIPSTATE_FLIGHT,
+	SHIPSTATE_CRASHING,
+} ShipState;
+
 typedef struct Ship
 {
 	Vector3 position;
 	Quaternion rotation;
 	Matrix transform;
 	Vector3 forward, right, up;
+	Vector3 crashVelocity;
 	Vector3 localAngularVelocity;
 	BoundingBox bounds;
 	ShipHandling handling;
 	ShipWeapons weapons;
 	int hp;
 	float speed;
-	bool isActive;
+	ShipState state;
 	bool isEnemy;
 } Ship;
 
@@ -57,7 +65,8 @@ typedef struct EnemyController
 } EnemyController;
 
 Ship ShipInit(ShipHandling handling, ShipWeapons weapons, int hp, bool isEnemy);
-void ShipUpdate(struct WorldState* world, Ship* ship, ShipInput input, float deltaTime);
+void ShipCrash(Ship* ship);
+bool ShipUpdate(struct WorldState* world, Ship* ship, ShipInput input, float deltaTime);
 void ShipDraw(Ship* ship, Model* model, Color color);
 
 BoundingBox ShipCalculateBounds(Vector3 position);

@@ -5,8 +5,16 @@
 
 #include "world.h"
 #include "audio.h"
+#include "particles.h"
 
 #include "smoothdamp.h"
+
+static float GetRandomFloat(float min, float max)
+{
+	float val = (float)GetRandomValue(0, 1000);
+	val /= 1000.f;
+	return Lerp(min, max, val);
+}
 
 static ShipInput ShipInputNormalize(ShipInput input)
 {
@@ -24,20 +32,41 @@ static Matrix BuildTransformMatrix(Vector3 position, Quaternion rotation)
 	return MatrixMultiply(rotationMat, positionMat);
 }
 
+static Quaternion RotateQuaternionWithLocalAngularVelocity(Quaternion rotation, Vector3 localAngularVelocity, float deltaTime)
+{
+	rotation = QuaternionMultiply(
+		rotation,
+		QuaternionFromAxisAngle(
+			(Vector3) { 1, 0, 0 },
+			localAngularVelocity.x * deltaTime) );
+
+	rotation = QuaternionMultiply(
+		rotation,
+		QuaternionFromAxisAngle(
+			(Vector3) { 0, 1, 0 },
+			localAngularVelocity.y* deltaTime));
+
+	rotation = QuaternionMultiply(
+		rotation,
+		QuaternionFromAxisAngle(
+			(Vector3) { 0, 0, 1 },
+			localAngularVelocity.z* deltaTime));
+
+	return rotation;
+}
+
 Ship ShipInit(ShipHandling handling, ShipWeapons weapons, int hp, bool isEnemy)
 {
 	Ship ship = {0};
-	ship.position = (Vector3){0, 0, 0};
 	ship.rotation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
 	ship.transform = BuildTransformMatrix(ship.position, ship.rotation);
 	ship.forward = (Vector3){0, 0, 1};
 	ship.right = (Vector3){1, 0, 0};
 	ship.up = (Vector3){0, 1, 0};
-	ship.localAngularVelocity = (Vector3){0, 0, 0};
 	ship.handling = handling;
 	ship.weapons = weapons;
 	ship.speed = handling.maxSpeed;
-	ship.isActive = true;
+	ship.state = SHIPSTATE_FLIGHT;
 	ship.isEnemy = isEnemy;
 	ship.hp = hp;
 
@@ -48,7 +77,37 @@ Ship ShipInit(ShipHandling handling, ShipWeapons weapons, int hp, bool isEnemy)
 	return ship;
 }
 
-void ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
+static void SpawnSparkParticles(Vector3 position)
+{
+	Particle p = {
+		.position = position,
+		.velocity = {0},
+		.color = YELLOW,
+		.gravity = 10,
+		.drag = 1,
+		.size = 5,
+		.timeToLive = 5,
+		.type = PARTICLE_LINE
+	};
+	for (int i = 0; i < 25; i++)
+	{
+		p.velocity.x = GetRandomFloat(-100, 100);
+		p.velocity.y = GetRandomFloat(50, 300);
+		p.velocity.z = GetRandomFloat(-100, 100);
+		ParticlesEmit(&p);
+	}
+}
+
+void ShipCrash(Ship* ship)
+{
+	ship->state = SHIPSTATE_CRASHING;
+	ship->localAngularVelocity.x = GetRandomFloat(3, 5);
+	ship->localAngularVelocity.y = GetRandomFloat(3, 5);
+	ship->localAngularVelocity.z = GetRandomFloat(3, 5);
+	ship->crashVelocity = Vector3Scale(ship->forward, ship->speed);
+}
+
+static bool ShipUpdateFlight(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 {
 	// Add autolevel to the input.
 	input.roll -= ship->right.y / 2.0f;
@@ -73,10 +132,9 @@ void ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 	ship->localAngularVelocity.y = SmoothDamp(ship->localAngularVelocity.y, input.yaw * ship->handling.yawRate * turnSpeedRamp, smoothSpeed, deltaTime);
 	ship->localAngularVelocity.z = SmoothDamp(ship->localAngularVelocity.z, input.roll * ship->handling.rollRate * turnSpeedRamp, smoothSpeed, deltaTime);
 
-	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 1, 0, 0 }, ship->localAngularVelocity.x* deltaTime));
-	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 0, 1, 0 }, ship->localAngularVelocity.y* deltaTime));
-	ship->rotation = QuaternionMultiply(ship->rotation, QuaternionFromAxisAngle((Vector3) { 0, 0, 1 }, ship->localAngularVelocity.z* deltaTime));
-	ship->rotation = QuaternionNormalize(ship->rotation);
+	ship->rotation = RotateQuaternionWithLocalAngularVelocity(
+		ship->rotation, ship->localAngularVelocity,
+		deltaTime);
 
 	// Ship translation.
 #ifdef _DEBUG
@@ -110,6 +168,47 @@ void ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 		float volume = ship->isEnemy ? 0.8f : 1.0f;
 		AudioPlaySoundAt(ship->weapons.fireSound, worldFirePos, 100, 250, volume);
 	}
+
+	// Returns true if the ship exploded, but that doesn't happen here.
+	return false;
+}
+
+static bool ShipUpdateCrashing(WorldState* world, Ship* ship, float deltaTime)
+{
+	if (ship->position.y <= 0)
+	{
+		ship->state = SHIPSTATE_INACTIVE;
+
+		Vector3 explodePos = ship->position;
+		float shipHeight = ship->bounds.max.y - ship->bounds.min.y;
+		explodePos.y += shipHeight;
+		SpawnSparkParticles(explodePos);
+
+		return true;
+	}
+
+	const float terminalVelocity = -350.0f;
+	ship->crashVelocity.y -= 50.0f * deltaTime;
+	if (ship->crashVelocity.y < terminalVelocity)
+		ship->crashVelocity.y = terminalVelocity;
+	ship->position = Vector3Add(ship->position, Vector3Scale(ship->crashVelocity, deltaTime));
+
+	ship->rotation = RotateQuaternionWithLocalAngularVelocity(
+		ship->rotation, ship->localAngularVelocity,
+		deltaTime);
+
+	return false;
+}
+
+bool ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
+{
+	switch (ship->state)
+	{
+		case SHIPSTATE_FLIGHT:
+			return ShipUpdateFlight(world, ship, input, deltaTime);
+		case SHIPSTATE_CRASHING:
+			return ShipUpdateCrashing(world, ship, deltaTime);
+	};
 }
 
 void ShipDraw(Ship* ship, Model* model, Color color)

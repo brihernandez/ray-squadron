@@ -2,6 +2,7 @@
 #include "world.h"
 #include "particles.h"
 #include "turrets.h"
+#include "ship.h"
 
 #include <raymath.h>
 
@@ -187,19 +188,20 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 
 		for (int e = 0; e < MAX_ENEMIES; e++)
 		{
-			if (!world->enemyShips[e].isActive)
+			if (world->enemyShips[e].state != SHIPSTATE_FLIGHT)
 				continue;
 
-			if (CheckCollisionBoxSphere(world->enemyShips[e].bounds, bul->position, BULLET_RADIUS))
+			Ship* ship = &world->enemyShips[e];
+			if (CheckCollisionBoxSphere(ship->bounds, bul->position, BULLET_RADIUS))
 			{
-				world->enemyShips[e].hp -= 1;
-				if (world->enemyShips[e].hp <= 0)
+				ship->hp -= 1;
+				if (ship->hp <= 0)
 				{
-					world->enemyShips[e].isActive = false;
+					ShipCrash(ship);
 					world->targetsDestroyed += 1;
 					SpawnSparkParticles(
-						world->enemyShips[e].position,
-						Vector3Scale(world->enemyShips[e].forward, world->enemyShips->speed));
+						ship->position,
+						Vector3Scale(ship->forward, ship->speed));
 					explodedSomething |= true;
 				}
 				hitSomething = true;

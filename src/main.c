@@ -48,6 +48,7 @@ static float GetRandomFloat(float min, float max)
 void DrawCrosshair(Vector2 screenPos, float radius);
 void DrawTextCentered(const char* message, int x, int y, int size, Color color);
 void DrawText3D(Camera camera, Vector3 position, const char* text, Color color);
+void DrawCheckerGrid(int tiles, float tileSize, Color color);
 void DrawGridColored(int slices, float spacing, Color color);
 
 static Vector2 HandleStickDeadzone(Vector2 input, float deadzone)
@@ -364,26 +365,33 @@ int main(void)
 
 				// Update weapons (bullets)
 				bool wasSomethingExplodedThisFrame = BulletsUpdate(&world, deltaTime);
-				if (wasSomethingExplodedThisFrame)
-					AudioPlaySound(sfx_explode, 1);
 
 				for (int i = 0; i < MAX_ENEMIES; i++)
 				{
-					if (world.enemyShips[i].isActive == false)
+					if (world.enemyShips[i].state == SHIPSTATE_INACTIVE)
 						continue;
 
 					EnemyControllerUpdate(&world.enemyControllers[i], &world.enemyShips[i], deltaTime);
-					ShipUpdate(&world, &world.enemyShips[i], world.enemyControllers[i].input, deltaTime);
+					wasSomethingExplodedThisFrame |= ShipUpdate(
+						&world,
+						&world.enemyShips[i], world.enemyControllers[i].input,
+						deltaTime);
 
 					// Enemy ships don't have a way to steer smartly so just constrain them to the world.
-					Ship* e = &world.enemyShips[i];
-					if (e->position.x > 500) e->position.x = 500;
-					if (e->position.x < -500) e->position.x = -500;
-					if (e->position.y > 200) e->position.y = 200;
-					if (e->position.y < 10) e->position.y = 10;
-					if (e->position.z > 500) e->position.z = 500;
-					if (e->position.z < -500) e->position.z = -500;
+					if (world.enemyShips[i].state == SHIPSTATE_FLIGHT)
+					{
+						Ship* e = &world.enemyShips[i];
+						if (e->position.x > 500) e->position.x = 500;
+						if (e->position.x < -500) e->position.x = -500;
+						if (e->position.y > 200) e->position.y = 200;
+						if (e->position.y < 10) e->position.y = 10;
+						if (e->position.z > 500) e->position.z = 500;
+						if (e->position.z < -500) e->position.z = -500;
+					}
 				}
+
+				if (wasSomethingExplodedThisFrame)
+					AudioPlaySound(sfx_explode, 1);
 
 				for (int i = 0; i < MAX_TURRETS; i++)
 				{
@@ -428,7 +436,7 @@ int main(void)
 					// Draw the background on a separate pass so that depth can be disabled.
 					rlDisableDepthMask();
 					DrawPlane(Vector3Zero(), (Vector2) { 10000, 10000 }, ground);
-					DrawGridColored(100, 100, ColorLerp(ground, WHITE, 0.3f));
+					DrawCheckerGrid(100, 100, ColorLerp(ground, BLACK, 0.1f));
 
 				} EndMode3D();
 
@@ -450,7 +458,7 @@ int main(void)
 					// Draw enemies.
 					for (int i = 0; i < MAX_ENEMIES; i++)
 					{
-						if (!world.enemyShips[i].isActive)
+						if (world.enemyShips[i].state == SHIPSTATE_INACTIVE)
 							continue;
 
 						ShipDraw(&world.enemyShips[i], &mdl_ship, RED);
@@ -583,6 +591,21 @@ void DrawText3D(Camera camera, Vector3 position, const char* text, Color color)
 
 	Vector2 screenPos = GetWorldToScreenEx(position, camera, RenderWidth, RenderHeight);
 	DrawText(text, (int)screenPos.x, (int)screenPos.y, 10, color);
+}
+
+void DrawCheckerGrid(int tiles, float tileSize, Color color)
+{
+	Vector2 size = {tileSize, tileSize};
+	for (int x = -tiles / 2; x < tiles / 2; x++)
+	{
+		for (int y = -tiles / 2; y < tiles / 2; y++)
+		{
+			Vector3 position = {tileSize * x * 2, 0, tileSize * y};
+			if (y % 2 == 0)
+				position.x += tileSize;
+			DrawPlane(position, size, color);
+		}
+	}
 }
 
 void DrawGridColored(int slices, float spacing, Color color)
