@@ -134,7 +134,6 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 				if (world->buildings[b].hp <= 0)
 				{
 					WorldExplodeBuilding(world, b);
-					world->targetsDestroyed += 1;
 					explodedSomething |= true;
 				}
 				hitSomething = true;

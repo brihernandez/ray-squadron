@@ -36,6 +36,7 @@ void WorldExplodeBuilding(WorldState* world, int index)
 	if (!world->buildings[index].active)
 		return;
 
+	world->targetsDestroyed += 1;
 	world->buildings[index].active = false;
 	WorldSpawnExplosionParticles(world->buildings[index].position);
 }

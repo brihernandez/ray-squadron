@@ -35,4 +35,7 @@ typedef struct WorldState
 } WorldState;
 
 void WorldSpawnExplosionParticles(Vector3 position);
+
+// Explodes the building and counts it for the targets destroyed.
+// Safe to call on a building that is already destroyed.
 void WorldExplodeBuilding(WorldState* world, int index);

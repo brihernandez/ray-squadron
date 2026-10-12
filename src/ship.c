@@ -213,6 +213,8 @@ static bool ShipUpdateCrashing(WorldState* world, Ship* ship, float deltaTime)
 	for (int i = 0; i < MAX_BUILDINGS; i++)
 	{
 		Building* building = &world->buildings[i];
+		if (!building->active)
+			continue;
 		if (CheckCollisionBoxes(ship->bounds, building->bounds))
 		{
 			ship->state = SHIPSTATE_INACTIVE;
