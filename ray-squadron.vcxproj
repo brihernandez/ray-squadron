@@ -317,6 +317,7 @@
     <ClCompile Include="src\particles.c" />
     <ClCompile Include="src\ship.c" />
     <ClCompile Include="src\turrets.c" />
+    <ClCompile Include="src\world.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\confirm.ogg" />

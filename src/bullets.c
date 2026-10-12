@@ -23,49 +23,6 @@ static float GetRandomFloat(float min, float max)
 	return Lerp(min, max, val);
 }
 
-static void SpawnSparkParticles(Vector3 position, Vector3 inheritedVelocity)
-{
-	Particle p = {
-		.position = position,
-		.velocity = {0},
-		.color = YELLOW,
-		.gravity = 10,
-		.drag = 1,
-		.size = 5,
-		.timeToLive = 5,
-		.type = PARTICLE_LINE
-	};
-	for (int i = 0; i < 25; i++)
-	{
-		p.velocity.x = GetRandomFloat(-100, 100);
-		p.velocity.y = GetRandomFloat(0, 200);
-		p.velocity.z = GetRandomFloat(-100, 100);
-		p.velocity = Vector3Add(p.velocity, inheritedVelocity);
-		ParticlesEmit(&p);
-	}
-}
-
-static void SpawnExplosionParticles(Vector3 position)
-{
-	Particle p = {
-		.position = position,
-		.velocity = {0},
-		.color = GRAY,
-		.gravity = 10,
-		.drag = 1,
-		.size = 5,
-		.timeToLive = 5,
-		.type = PARTICLE_CUBE
-	};
-	for (int i = 0; i < 25; i++)
-	{
-		p.velocity.x = GetRandomFloat(-100, 100);
-		p.velocity.y = GetRandomFloat(25, 150);
-		p.velocity.z = GetRandomFloat(-100, 100);
-		ParticlesEmit(&p);
-	}
-}
-
 void BulletsInit(WorldState* world)
 {
 	for (int i = 0; i < MAX_BULLETS; i++)
@@ -176,9 +133,8 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 				world->buildings[b].hp -= 1;
 				if (world->buildings[b].hp <= 0)
 				{
-					world->buildings[b].active = false;
+					WorldExplodeBuilding(world, b);
 					world->targetsDestroyed += 1;
-					SpawnExplosionParticles(world->buildings[b].position);
 					explodedSomething |= true;
 				}
 				hitSomething = true;
@@ -197,11 +153,8 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 				ship->hp -= 1;
 				if (ship->hp <= 0)
 				{
-					ShipCrash(ship);
 					world->targetsDestroyed += 1;
-					SpawnSparkParticles(
-						ship->position,
-						Vector3Scale(ship->forward, ship->speed));
+					ShipExplode(ship);
 					explodedSomething |= true;
 				}
 				hitSomething = true;
@@ -223,7 +176,7 @@ bool BulletsUpdate(WorldState* world, float deltaTime)
 					tur->isActive = false;
 					//world->targetsDestroyed += 1;
 					Vector3 explosionPos = Vector3Add(TurretGetCenter(tur), (Vector3) { 0, 10, 0 });
-					SpawnExplosionParticles(explosionPos);
+					WorldSpawnExplosionParticles(explosionPos);
 					explodedSomething |= true;
 				}
 				hitSomething = true;

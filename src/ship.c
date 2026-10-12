@@ -52,7 +52,16 @@ static Quaternion RotateQuaternionWithLocalAngularVelocity(Quaternion rotation, 
 			(Vector3) { 0, 0, 1 },
 			localAngularVelocity.z* deltaTime));
 
-	return rotation;
+	// Prevents building up of floating point errors over time.
+	return QuaternionNormalize(rotation);
+}
+
+static void ShipUpdateTransform(Ship* ship)
+{
+	ship->transform = BuildTransformMatrix(ship->position, ship->rotation);
+	ship->forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, ship->rotation);
+	ship->up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, ship->rotation);
+	ship->right = Vector3RotateByQuaternion((Vector3) { 1, 0, 0 }, ship->rotation);
 }
 
 Ship ShipInit(ShipHandling handling, ShipWeapons weapons, int hp, bool isEnemy)
@@ -98,13 +107,27 @@ static void SpawnSparkParticles(Vector3 position)
 	}
 }
 
-void ShipCrash(Ship* ship)
+static void ShipPlayExplodeFX(Ship* ship, bool onGround)
+{
+	Vector3 explodePos = ship->position;
+	if (onGround)
+	{
+		float shipHeight = ship->bounds.max.y - ship->bounds.min.y;
+		explodePos.y += shipHeight;
+	}
+	SpawnSparkParticles(explodePos);
+}
+
+void ShipExplode(Ship* ship)
 {
 	ship->state = SHIPSTATE_CRASHING;
+
 	ship->localAngularVelocity.x = GetRandomFloat(3, 5);
 	ship->localAngularVelocity.y = GetRandomFloat(3, 5);
 	ship->localAngularVelocity.z = GetRandomFloat(3, 5);
 	ship->crashVelocity = Vector3Scale(ship->forward, ship->speed);
+
+	ShipPlayExplodeFX(ship, false);
 }
 
 static bool ShipUpdateFlight(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
@@ -115,22 +138,30 @@ static bool ShipUpdateFlight(WorldState* world, Ship* ship, ShipInput input, flo
 
 	// Speed control.
 	float smoothSpeed = ship->handling.responsiveness;
-	ShipHandling handling = ship->handling;
+	ShipHandling* handling = &ship->handling;
 	float targetSpeed = input.throttle >= 0
-		? Remap(input.throttle, 0, 1, handling.cruiseSpeed, handling.maxSpeed)
-		: Remap(input.throttle, -1, 0, handling.minSpeed, handling.cruiseSpeed);
+		? Remap(input.throttle, 0, 1, handling->cruiseSpeed, handling->maxSpeed)
+		: Remap(input.throttle, -1, 0, handling->minSpeed, handling->cruiseSpeed);
 	ship->speed = SmoothDamp(ship->speed, targetSpeed, smoothSpeed, deltaTime);
 
 	// Cruise speed is the optimal turn rate. Faster/slower will incur a penalty to turn rate.
-	const float TurnPenalty = 0.67f;
+	const float turnPenalty = 0.67f;
 	float turnSpeedRamp = ship->speed > ship->handling.cruiseSpeed
-		? Remap(ship->speed, ship->handling.cruiseSpeed, ship->handling.maxSpeed, 1.0f, TurnPenalty)
-		: Remap(ship->speed, ship->handling.minSpeed, ship->handling.cruiseSpeed, TurnPenalty, 1.0f);
+		? Remap(ship->speed, ship->handling.cruiseSpeed, ship->handling.maxSpeed, 1.0f, turnPenalty)
+		: Remap(ship->speed, ship->handling.minSpeed, ship->handling.cruiseSpeed, turnPenalty, 1.0f);
 
 	// Ship rotation.
-	ship->localAngularVelocity.x = SmoothDamp(ship->localAngularVelocity.x, input.pitch * ship->handling.pitchRate * turnSpeedRamp, smoothSpeed, deltaTime);
-	ship->localAngularVelocity.y = SmoothDamp(ship->localAngularVelocity.y, input.yaw * ship->handling.yawRate * turnSpeedRamp, smoothSpeed, deltaTime);
-	ship->localAngularVelocity.z = SmoothDamp(ship->localAngularVelocity.z, input.roll * ship->handling.rollRate * turnSpeedRamp, smoothSpeed, deltaTime);
+	ship->localAngularVelocity.x = SmoothDamp(
+		ship->localAngularVelocity.x,
+		input.pitch * ship->handling.pitchRate * turnSpeedRamp,
+		smoothSpeed, deltaTime);
+	ship->localAngularVelocity.y = SmoothDamp(
+		ship->localAngularVelocity.y,
+		input.yaw * ship->handling.yawRate * turnSpeedRamp,
+		smoothSpeed, deltaTime);
+	ship->localAngularVelocity.z = SmoothDamp(
+		ship->localAngularVelocity.z, input.roll * ship->handling.rollRate * turnSpeedRamp,
+		smoothSpeed, deltaTime);
 
 	ship->rotation = RotateQuaternionWithLocalAngularVelocity(
 		ship->rotation, ship->localAngularVelocity,
@@ -146,27 +177,24 @@ static bool ShipUpdateFlight(WorldState* world, Ship* ship, ShipInput input, flo
 	if (ship->position.y < 2)
 		ship->position.y = 2;
 
-	ship->bounds = ShipCalculateBounds(ship->position);
-
 	// Update the transform matrix and other shortcuts.
-	ship->transform = BuildTransformMatrix(ship->position, ship->rotation);
-	ship->forward = Vector3RotateByQuaternion((Vector3) { 0, 0, 1 }, ship->rotation);
-	ship->up = Vector3RotateByQuaternion((Vector3) { 0, 1, 0 }, ship->rotation);
-	ship->right = Vector3RotateByQuaternion((Vector3) { 1, 0, 0 }, ship->rotation);
+	ShipUpdateTransform(ship);
 
 	// Ship weapons.
-	ship->weapons.timeSinceLastShot += deltaTime;
-	if (input.isFiring && ship->weapons.timeSinceLastShot > ship->weapons.fireDelay)
+	ShipWeapons* weapons = &ship->weapons;
+	weapons->timeSinceLastShot += deltaTime;
+	bool isReadyToFire = weapons->timeSinceLastShot > weapons->fireDelay && weapons->barrelCount > 0;
+	if (input.isFiring && isReadyToFire)
 	{
-		Vector3 localFirePos = ship->weapons.barrels[ship->weapons.barrelIndex];
+		Vector3 localFirePos = weapons->barrels[weapons->barrelIndex];
 		Vector3 worldFirePos = Vector3Transform(localFirePos, ship->transform);
-		Vector3 bulletVelocity = Vector3Scale(ship->forward, ship->speed + ship->weapons.muzzleVelocity);
+		Vector3 bulletVelocity = Vector3Scale(ship->forward, ship->speed + weapons->muzzleVelocity);
 		BulletsFire(world, worldFirePos, bulletVelocity, 1, ship->isEnemy);
-		ship->weapons.barrelIndex = (ship->weapons.barrelIndex + 1) % ship->weapons.barrelCount;
-		ship->weapons.timeSinceLastShot = 0;
+		weapons->barrelIndex = (weapons->barrelIndex + 1) % weapons->barrelCount;
+		weapons->timeSinceLastShot = 0;
 
 		float volume = ship->isEnemy ? 0.8f : 1.0f;
-		AudioPlaySoundAt(ship->weapons.fireSound, worldFirePos, 100, 250, volume);
+		AudioPlaySoundAt(weapons->fireSound, worldFirePos, 100, 250, volume);
 	}
 
 	// Returns true if the ship exploded, but that doesn't happen here.
@@ -178,13 +206,20 @@ static bool ShipUpdateCrashing(WorldState* world, Ship* ship, float deltaTime)
 	if (ship->position.y <= 0)
 	{
 		ship->state = SHIPSTATE_INACTIVE;
-
-		Vector3 explodePos = ship->position;
-		float shipHeight = ship->bounds.max.y - ship->bounds.min.y;
-		explodePos.y += shipHeight;
-		SpawnSparkParticles(explodePos);
-
+		ShipPlayExplodeFX(ship, true);
 		return true;
+	}
+
+	for (int i = 0; i < MAX_BUILDINGS; i++)
+	{
+		Building* building = &world->buildings[i];
+		if (CheckCollisionBoxes(ship->bounds, building->bounds))
+		{
+			ship->state = SHIPSTATE_INACTIVE;
+			WorldExplodeBuilding(world, i);
+			ShipPlayExplodeFX(ship, true);
+			return true;
+		}
 	}
 
 	const float terminalVelocity = -350.0f;
@@ -197,18 +232,26 @@ static bool ShipUpdateCrashing(WorldState* world, Ship* ship, float deltaTime)
 		ship->rotation, ship->localAngularVelocity,
 		deltaTime);
 
+	ShipUpdateTransform(ship);
+
 	return false;
 }
 
 bool ShipUpdate(WorldState* world, Ship* ship, ShipInput input, float deltaTime)
 {
+	bool wasExploded = false;
 	switch (ship->state)
 	{
 		case SHIPSTATE_FLIGHT:
-			return ShipUpdateFlight(world, ship, input, deltaTime);
+			wasExploded = ShipUpdateFlight(world, ship, input, deltaTime);
+			break;
 		case SHIPSTATE_CRASHING:
-			return ShipUpdateCrashing(world, ship, deltaTime);
+			wasExploded = ShipUpdateCrashing(world, ship, deltaTime);
+			break;
 	};
+
+	ship->bounds = ShipCalculateBounds(ship->position);
+	return wasExploded;
 }
 
 void ShipDraw(Ship* ship, Model* model, Color color)
@@ -216,8 +259,7 @@ void ShipDraw(Ship* ship, Model* model, Color color)
 	float bankAngle = 30.f * DEG2RAD;
 	float visualBank = Remap(ship->localAngularVelocity.y, -ship->handling.yawRate, ship->handling.yawRate, bankAngle, -bankAngle);
 	Quaternion visualRotation = QuaternionMultiply(QuaternionFromAxisAngle(ship->forward, visualBank), ship->rotation);
-	Matrix transform = MatrixTranslate(ship->position.x, ship->position.y, ship->position.z);
-	model->transform = MatrixMultiply(QuaternionToMatrix(visualRotation), transform);
+	model->transform = BuildTransformMatrix(ship->position, visualRotation);
 	DrawModel(*model, Vector3Zero(), 1, color);
 
 #ifdef SHOW_HITBOXES

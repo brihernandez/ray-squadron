@@ -33,3 +33,6 @@ typedef struct WorldState
 	Turret turrets[MAX_TURRETS];
 	int targetsDestroyed;
 } WorldState;
+
+void WorldSpawnExplosionParticles(Vector3 position);
+void WorldExplodeBuilding(WorldState* world, int index);

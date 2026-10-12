@@ -65,7 +65,8 @@ typedef struct EnemyController
 } EnemyController;
 
 Ship ShipInit(ShipHandling handling, ShipWeapons weapons, int hp, bool isEnemy);
-void ShipCrash(Ship* ship);
+void ShipExplode(Ship* ship);
+// Returns true when the ship is exploded this update.
 bool ShipUpdate(struct WorldState* world, Ship* ship, ShipInput input, float deltaTime);
 void ShipDraw(Ship* ship, Model* model, Color color);
 
